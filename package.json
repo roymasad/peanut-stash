@@ -1,0 +1,48 @@
+{
+  "name": "peanut-stash-cli",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Collaborative command line cloud Stash, Share, Copy & Paste tool.",
+  "main": "pnut.js",
+  "bin": {
+    "pnut": "./pnut.js"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/roymasad/peanut-stash.git"
+  },
+  "keywords": [
+    "cli",
+    "copy",
+    "paste",
+    "command",
+    "collaborative",
+    "tool",
+    "stash",
+    "cloud",
+    "share",
+    "peanut"
+  ],
+  "author": "Roy Massaad",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/roymasad/peanut-stash/issues"
+  },
+  "homepage": "https://github.com/roymasad/peanut-stash#readme",
+  "dependencies": {
+    "@clack/prompts": "0.7.0",
+    "clipboardy": "4.0.0",
+    "crypto": "1.0.1",
+    "dotenv": "16.4.5",
+    "figlet": "1.7.0",
+    "firebase": "10.11.0",
+    "node-fetch": "3.3.2",
+    "node-machine-id": "1.1.12",
+    "open": "10.1.0",
+    "picocolors": "1.0.0",
+    "readline-sync": "1.4.10"
+  }
+}

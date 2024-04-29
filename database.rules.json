@@ -1,0 +1,76 @@
+{
+  "rules": {
+
+    "users": {
+      // make sure top parent rules are not open to everyone
+      // children rules can grant extra access, but cant revoke already granted parent accees
+      // only grant access to children nodes based on need
+      "$user_email": {
+        ".read": "auth !== null && auth.uid !== null && auth.email_verified == true && auth.email.replace('.','_') === $user_email",
+        ".write": "auth !== null && auth.uid !== null && auth.email_verified == true && auth.email.replace('.','_') === $user_email",
+        
+        // public child node path is read access for everyone
+        // but write access is granular
+        "public": {
+          ".read": "auth !== null && auth.uid !== null && auth.email_verified == true",
+
+          // other users can write only to this public node pending-text child
+          // it is used to receive text peanuts from other users
+          // once received, it is deleted if the user accepts it and copies it to their stash
+          "pending-text": {
+            ".read": "auth !== null && auth.uid !== null && auth.email_verified == true",
+            ".write": "auth !== null && auth.uid !== null && auth.email_verified == true",
+            // validate schema and enforce that others can only use their own uid and email
+            // and make sure that userId of this contact is already added as a prop in private/contacts
+            "$text":{
+              ".read" : "root.child('/users/' + $user_email + '/private/contacts/' + auth.email.replace('.','_') ).exists()",
+              ".write" : "root.child('/users/' + $user_email + '/private/contacts/' + auth.email.replace('.','_') ).exists()",
+              "email": { ".validate": "newData.val() === auth.email"},
+              "userId": { ".validate": "newData.val() === auth.uid"}, 
+              "timestamp": { ".validate": true},
+              "data": { ".validate": true},
+              "$other": { ".validate": false }
+            }
+          },
+
+          // uid, publickey and email are write access only for the current user
+          "uid": {
+            ".read": "auth !== null && auth.uid !== null && auth.email_verified == true",
+            ".write": "auth !== null && auth.uid !== null  && auth.email_verified == true && root.child('users/' + $user_email + '/public/uid').val() === auth.uid" 
+          },
+
+          "publicKey": {
+            ".read": "auth !== null && auth.uid !== null && auth.email_verified == true",
+            ".write": "auth !== null && auth.uid !== null && auth.email_verified == true && root.child('users/' + $user_email + '/public/uid').val() === auth.uid" 
+          },
+
+          "email": {
+            ".read": "auth !== null && auth.uid !== null && auth.email_verified == true",
+            ".write": "auth !== null && auth.uid !== null && auth.email_verified == true && root.child('users/' + $user_email + '/public/uid').val() === auth.uid" 
+          },
+          "$other": { ".validate": false }
+        },
+
+        // private child node and its children is only read/write access for the current user
+        "private": {
+          ".read": "auth !== null && auth.uid !== null && auth.email_verified == true && root.child('users/' + $user_email + '/private/uid').val() === auth.uid",
+          ".write": "auth !== null && auth.uid !== null && auth.email_verified == true && root.child('users/' + $user_email + '/private/uid').val() === auth.uid",
+          "peanuts-stash" : {
+            "$text":{
+              ".indexOn": "timestamp",  // index on timestamp for query performance
+              "email": { ".validate": true},
+              "userId": { ".validate": true}, 
+              "timestamp": { ".validate": true},
+              "data": { ".validate": true},
+              "category": { ".validate": true},
+              "$other": { ".validate": false }
+            }
+          }
+        }
+      }
+    }
+    
+
+    
+  }
+}
