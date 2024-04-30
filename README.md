@@ -43,8 +43,8 @@ pnut
 
 * server (sv)                              Use default or custom firebase server (web app creds)
 
-* stash (s) <peanut data>                  Stash a text peanut
-* pop (p)                                  Pop stashed text. Asks to display, copy or exec(TODO)
+* stash (s)                                Stash a text peanut
+* pop (p)                                  Pop stashed text. Asks to display, copy or exec
 * list (l)                                 Manage all stashed peanuts
 
 * about (a)                                About Page

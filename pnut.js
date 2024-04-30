@@ -59,7 +59,7 @@ const serverConfFilePath = path.join(hiddenFolderPath, 'server.conf');
 
 let firebaseConfig = {};
 
-// check if a local server config file exists and load and use custom firebase server creds
+// check if a custom server config file exists and load and use it for firebase server credentials
 if (fs.existsSync(serverConfFilePath)) {
 
   const serverData = fs.readFileSync(serverConfFilePath, 'utf8');
@@ -75,10 +75,15 @@ if (fs.existsSync(serverConfFilePath)) {
   console.log(color.green("Secured: Using custom private server"));
   
 } else {
-
-  // choose which env file to load firebase config from, prod or local testing (install firebase cli emulators to test)
-  config( { path: __dirname + '/config/default-public-server.env' }) 
-  //config( { path: __dirname + '/config/local-testing-server.env' }) 
+  // no custom server config file found, so load default firebase public test server from env file
+  config( { path: __dirname + '/config/default-public-server.env' })
+  // but reload all env for local firebase emulator testing server if flag to do so is set in public env file.
+  if (process.env.useLocalEmulatorServerInstead == 'true') {
+    config( { path: __dirname + '/config/local-testing-server.env', override: true }) 
+    console.log(color.magenta("Please Note: You are using local emulator server."));
+  } else {
+    console.log(color.magenta("Please Note: You are using the public testing server."));
+  }
 
   firebaseConfig = {
     apiKey: process.env.apiKey,
@@ -87,7 +92,6 @@ if (fs.existsSync(serverConfFilePath)) {
     projectId: process.env.projectId,
   };
 
-  console.log(color.magenta("Please Note: You are using the public testing server."));
 }
 
 
@@ -95,10 +99,6 @@ if (fs.existsSync(serverConfFilePath)) {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase();
 const auth = getAuth();
-
-// local testing env for firebase, changing .env loaded doesn seem to work
-// connectAuthEmulator(auth, "http://127.0.0.1:9099");
-// connectDatabaseEmulator(db, "127.0.0.1", 9000);
 
 let user = null;
 
