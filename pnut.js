@@ -48,65 +48,79 @@ import {  decryptDataSymmetrical,
           stateMachine,
           } from './peanuts/utilities.js';
 
-// Calculating __dirname this way is needed to get the dotenv to load successfully when the cli app is 
-// installed globally from npm using `npm install -g peanut-stash`. Using a relative path wont work.
-// https://github.com/nodejs/help/issues/2907#issuecomment-757446568
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
 
-const hiddenFolderPath = path.join(os.homedir(), '.peanuts');   // where we save our local config data
-const serverConfFilePath = path.join(hiddenFolderPath, 'server.conf');
+// Main start function
+function main() {
 
-let firebaseConfig = {};
+  // Calculating __dirname this way is needed to get the dotenv to load successfully when the cli app is 
+  // installed globally from npm using `npm install -g peanut-stash`. Using a relative path wont work.
+  // https://github.com/nodejs/help/issues/2907#issuecomment-757446568
+  const __filename = fileURLToPath(import.meta.url);
+  const __dirname = dirname(__filename);
 
-// check if a custom server config file exists and load and use it for firebase server credentials
-if (fs.existsSync(serverConfFilePath)) {
+  const hiddenFolderPath = path.join(os.homedir(), '.peanuts');   // where we save our local config data
+  const serverConfFilePath = path.join(hiddenFolderPath, 'server.conf');
 
-  const serverData = fs.readFileSync(serverConfFilePath, 'utf8');
-  const serverJson = JSON.parse(serverData);
+  let firebaseConfig = {};
 
-  firebaseConfig = {
-    apiKey: serverJson.apiKey,
-    authDomain: serverJson.authDomain,
-    databaseURL: serverJson.databaseURL,
-    projectId: serverJson.projectId,
-  };
+  // check if a custom server config file exists and load and use it for firebase server credentials
+  if (fs.existsSync(serverConfFilePath)) {
 
-  console.log(color.green("Secured: Using custom private server"));
-  
-} else {
-  // no custom server config file found, so load default firebase public test server from env file
-  config( { path: __dirname + '/config/default-public-server.env' })
-  // but reload all env for local firebase emulator testing server if flag to do so is set in public env file.
-  if (process.env.useLocalEmulatorServerInstead == 'true') {
-    config( { path: __dirname + '/config/local-testing-server.env', override: true }) 
-    console.log(color.magenta("Please Note: You are using local emulator server."));
+    const serverData = fs.readFileSync(serverConfFilePath, 'utf8');
+    const serverJson = JSON.parse(serverData);
+
+    firebaseConfig = {
+      apiKey: serverJson.apiKey,
+      authDomain: serverJson.authDomain,
+      databaseURL: serverJson.databaseURL,
+      projectId: serverJson.projectId,
+    };
+
+    console.log(color.green("Secured: Using custom private server"));
+    
   } else {
-    console.log(color.magenta("Please Note: You are using the public testing server."));
+    // no custom server config file found, so load default firebase public test server from env file
+    config( { path: __dirname + '/config/default-public-server.env' })
+    // but reload all env for local firebase emulator testing server if flag to do so is set in public env file.
+    if (process.env.useLocalEmulatorServerInstead == 'true') {
+      config( { path: __dirname + '/config/local-testing-server.env', override: true }) 
+      console.log(color.magenta("Please Note: You are using local emulator server."));
+    } else {
+      console.log(color.magenta("Please Note: You are using the public testing server."));
+    }
+
+    firebaseConfig = {
+      apiKey: process.env.apiKey,
+      authDomain: process.env.authDomain,
+      databaseURL: process.env.databaseURL,
+      projectId: process.env.projectId,
+    };
+
   }
 
-  firebaseConfig = {
-    apiKey: process.env.apiKey,
-    authDomain: process.env.authDomain,
-    databaseURL: process.env.databaseURL,
-    projectId: process.env.projectId,
-  };
+  // Initialize Firebase
+  const app = initializeApp(firebaseConfig);
+
+  // Process the actions from the arguments
+  proccessInput();
 
 }
 
-
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const db = getDatabase();
-const auth = getAuth();
-
-let user = null;
-
 // Function to handle terminal input and write data to Firebase
-function proccessInput(action) {
+function proccessInput() {
+
+  // Get firebase main objects
+  const db = getDatabase();
+  const auth = getAuth();
+
+  // Get command line arguments
+  const args = process.argv.slice(2);
+
+  // Extract action from first argument
+  const action = args[0];
 
   // Check if user has login information saved previously and load it
-
+  const hiddenFolderPath = path.join(os.homedir(), '.peanuts');
   // Define the path of the hidden folder/file in the user's home directory
   const authFilePath = path.join(hiddenFolderPath, 'session.json');
 
@@ -133,7 +147,7 @@ function proccessInput(action) {
     // because that would be a builtin security risk design archicture problem.
     signInWithEmailAndPassword(auth, email, password)
     .then(async (userCredential) => { 
-      user = userCredential.user;
+      const user = userCredential.user;
 
       // Load user's public and private keys from firebase
 
@@ -150,12 +164,6 @@ function proccessInput(action) {
       // Attach the keys to the user's credentials for this session
       user.privateKey = privateKey.val();
       user.publicKey = publicKey.val();
-
-      // TODO: Quick app start testing Testing section, remove
-      // console.log("Booting up");
-      // const pubRef = ref(db, 'users/' + firebase_email + '/public/');
-      // await update(pubRef, { email: '222' });
-      // process.exit(0);
 
       // Run state machine based on args and user state
       // db is the firebase database
@@ -182,16 +190,10 @@ function proccessInput(action) {
 
 }
 
-// Get command line arguments
-const args = process.argv.slice(2);
+// Call Main entry point
+main();
 
-// Extract data from arguments
-// composite join the arguments after the first parameter
-// useful to stash text lines (most common use case)
-const action = args[0];
-
-// Process the actions from the arguments
-// Main entry point
-proccessInput(action);
-
+// TODO: Quick app start testing Testing section, remove
+// console.log("Booting up");
+// process.exit(0);
 

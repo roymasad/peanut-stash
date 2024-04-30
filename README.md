@@ -22,6 +22,9 @@ Requires access to internet
 
 npm install
 
+Note: to test/work using  yourlocal firebase emulator servers (firebase + authentication)
+You have edit config/local-testing-server.env and put your own local emulator IDs
+
 ##### NPM Installation:
 
 npm i -g peanut-stash-cli
@@ -80,21 +83,21 @@ pnut pop
 
 #### Must Read, Important Notes:
 
-Currently the app runs by default on testing servers, so no need to set one up initially.
+Currently the app runs by default on a public testing server, so no need to set one up initially to check it.
 
-That said, use your own firebase server if/when you are working on production and sharing important text items. (private server siloed for your team/group)
-It is very easy to do so, you just need to create a new firebase project (spark or blaze) and enable auth with emails and realtime database.
-The current security rules for the realtime database are in the repo.
+That said, use your own firebase server if/when you are working on production and sharing important text items. (private server siloed for your own team/group)
+It is very easy to do so, you just need to create a new firebase project (spark or blaze) and enable authentiction with emails and realtime database only.
+The current security rules for the realtime database are in the repo, use them. 
 
-After each user of the group needs to download the json and load it once into peanuts cli with approripate server argument.
+After each user of the group needs to use the web app project Ids and load them once into peanuts cli with approripate server argument. (you only need 4 of them, check default-public-server.env for the ones required)
 
-The provided default testing server with peanuts works out of the box and is only for quick testing convience as it is multi tenant. It also is hosted on a free Firebase Spark plan that has quota limitations and is not guarantted to be always secure, maintained or upgraded. Neither myself or the project will be liable to any breaches in the future. 
-By continuing to use the default test server you agree to these terms and take personal responsiblity. The testing database is under development, things might get deleted/refactored and data privacy cannot be provided. Don't share any private/sensitive content on it.
+The provided default testing server with peanuts works out of the box and is only for quick testing convience as it is multi tenant and others might be testing. It also is hosted on a free Firebase Spark plan that has quota limitations and is not guarantted to be always secure, maintained or upgraded. Neither myself nor the project will be liable to any breaches/problems in the future for your data on a testing proof of concept server. 
+By continuing to use the default test server you agree to those terms and take personal responsiblity. The testing database is under development, things might get deleted/refactored and data privacy cannot be provided. Again, don't share any private/sensitive content on it or use it for work, use your own firebase server it takes 5 mins to set up.
 
-If you are interested in contributing additional features or fixing issues to the project, you are welcome to fork this repo and create pull requests.
-Certain intentionally missing features like using custom access tokens to login will require additional server api deployment/budget/server and therefore are only fit for forks/clone repos to teams who need this functionality and have already the paid servers to deploy on. The testing server will not be upgraded to a paid plan to support this or other features that require payments or additional servers/deployments. Also on the public test server to deal with any abuse, the google cloud identity tool kit's API "Queries per minute per user" quota is reduced from 30000 to 512. Everything else is turned off or throttled down with quotas substantially.
+If you are interested in contributing additional features, ideas, enhacements or fixing issues pertaining to the project, you are welcome to fork this repo and create pull requests directly.
+Certain intentionally missing features like using custom access tokens to login will require additional server api deployment/budget/server/architecture and therefore are only fit for forks/clone repos for teams who need this functionality and have already the paid servers to deploy on. The testing server will not be upgraded to a paid plan to support this or any other features that require payments or additional servers/deployments. Also on the public test server to mitigate abuse, the google cloud identity tool kit's API "Queries per minute per user" quota is reduced from 30000 to 512. Everything else is turned off or throttled down with quotas substantially. Additionally the firebase Spark plan provides a limited combined 1GB DB capacity.
 
-In this spirit the design client logic/architecture on the main branch is to access the realtime firebase database directly from the node app without going through API server endpoints. (and the pros and cons that comes with this approach). Firebase admin sdk cannot be used in such a project.
+In this spirit, the design of is that of a purely client logic/architecture on the main branch which can access the realtime firebase database directly from the node app without going through API server endpoints or any paid features. (and the pros and cons that comes with this approach). Firebase admin sdk cannot be used in such a project since we arent using server modules and for security reasons can't use the admin sdk in an unsecure public client environment.
 
 
 #### TODO for version 1.0.2:
