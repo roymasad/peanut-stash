@@ -510,3 +510,35 @@ export async function listPeanuts(user, db) {
 
 }
 
+// Pop Latest Peanut
+export async function popPeanut(user, db) {
+    
+    const userEmail = user.email;
+    const firebase_email = userEmail.replace(/\./g, '_');
+
+    const peanutRef = ref(db, `users/${firebase_email}/private/peanut-stash`);
+
+    get(peanutRef).then(async (snapshot) => {
+        
+        if (snapshot.exists()) {
+
+            // get the last/latest child from snapshot
+            const peanuts = snapshot.val();
+            const keys = Object.keys(peanuts);
+            const lastKey = keys[keys.length - 1];
+
+            let decryptedPeanut = decryptStringWithPrivateKey(user.privateKey, peanuts[lastKey].data);
+
+            console.log(`${color.cyan('Popping Last Peanut:')}`);
+            console.log(decryptedPeanut);
+            process.exit(0);
+
+
+        } else {
+            console.log(`${color.cyan('No Peanuts Stashed.')}`);
+            process.exit(1);
+        }
+
+    });
+}
+

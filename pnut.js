@@ -54,16 +54,42 @@ import {  decryptDataSymmetrical,
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-// choose which env file to load, prod or local testing (install firebase cli emulators to test)
-//config( { path: __dirname + '/config/default-public-server.env' }) 
-config( { path: __dirname + '/config/local-testing-server.env' }) 
+const hiddenFolderPath = path.join(os.homedir(), '.peanuts');   // where we save our local config data
+const serverConfFilePath = path.join(hiddenFolderPath, 'server.conf');
 
-const firebaseConfig = {
-  apiKey: process.env.apiKey,
-  authDomain: process.env.authDomain,
-  databaseURL: process.env.databaseURL,
-  projectId: process.env.projectId,
-};
+let firebaseConfig = {};
+
+// check if a local server config file exists and load and use custom firebase server creds
+if (fs.existsSync(serverConfFilePath)) {
+
+  const serverData = fs.readFileSync(serverConfFilePath, 'utf8');
+  const serverJson = JSON.parse(serverData);
+
+  firebaseConfig = {
+    apiKey: serverJson.apiKey,
+    authDomain: serverJson.authDomain,
+    databaseURL: serverJson.databaseURL,
+    projectId: serverJson.projectId,
+  };
+
+  console.log(color.green("Secured: Using custom private server"));
+  
+} else {
+
+  // choose which env file to load firebase config from, prod or local testing (install firebase cli emulators to test)
+  config( { path: __dirname + '/config/default-public-server.env' }) 
+  //config( { path: __dirname + '/config/local-testing-server.env' }) 
+
+  firebaseConfig = {
+    apiKey: process.env.apiKey,
+    authDomain: process.env.authDomain,
+    databaseURL: process.env.databaseURL,
+    projectId: process.env.projectId,
+  };
+
+  console.log(color.magenta("Please Note: You are using the public testing server."));
+}
+
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
@@ -71,8 +97,8 @@ const db = getDatabase();
 const auth = getAuth();
 
 // local testing env for firebase, changing .env loaded doesn seem to work
-connectAuthEmulator(auth, "http://127.0.0.1:9099");
-connectDatabaseEmulator(db, "127.0.0.1", 9000);
+// connectAuthEmulator(auth, "http://127.0.0.1:9099");
+// connectDatabaseEmulator(db, "127.0.0.1", 9000);
 
 let user = null;
 
@@ -82,7 +108,6 @@ function proccessInput(action) {
   // Check if user has login information saved previously and load it
 
   // Define the path of the hidden folder/file in the user's home directory
-  const hiddenFolderPath = path.join(os.homedir(), '.peanuts');
   const authFilePath = path.join(hiddenFolderPath, 'session.json');
 
   // check if cached auth json file exists

@@ -39,8 +39,7 @@ pnut
 
 * users (u)                                Manage all connected users (active/pending)
 
-* server (sv) firebase.json                Use your custom firebase server json file (TODO)
-* server (sv) default                      Use default provided testing firebase server(TODO)
+* server (sv)                              Use default or custom firebase server (web app creds)
 
 * stash (s) <peanut data>                  Stash a text peanut
 * pop (p)                                  Pop stashed text. Asks to display, copy or exec(TODO)
@@ -99,7 +98,7 @@ In this spirit the design client logic/architecture on the main branch is to acc
 
 #### TODO for version 1.0.0:
 
-* Implement 'pop' argument
+* DONE Implement 'pop' argument
 * Implement 'server' argument to import/use custom firebase project 
 * Change text peanuts categories option
 * Filter text peanuts by categories option

@@ -4,6 +4,10 @@ import color from 'picocolors';
 import figlet from "figlet";
 import * as prompts from '@clack/prompts'
 import clipboard from 'clipboardy';
+import fs from 'fs';
+import path from 'path';
+import os from 'os';
+import { question } from 'readline-sync';
 
 import {  loginUser,
           logoutUser,
@@ -12,7 +16,8 @@ import {  loginUser,
           registerUser } from './users.js';
 
 import {  stashPeanut,
-          listPeanuts } from './stash.js';
+          listPeanuts,
+          popPeanut } from './stash.js';
 
 // Show console help arguments
 export function showArgs() {
@@ -26,8 +31,7 @@ export function showArgs() {
     console.log(`reset (r)\t\t\t\t ${color.cyan('Reset password')}\n`);
     console.log(`users (u) \t\t\t\t ${color.cyan('Manage all connected users (active/pending)')}\n`);
   
-    console.log(`server (sv) firebase.json \t\t ${color.cyan('Use your custom firebase server json file')}`);
-    console.log(`server (sv) default \t\t\t ${color.cyan('Use default provided firebase server')}\n`);
+    console.log(`server (sv) \t\t\t\t ${color.cyan('Use default or custom firebase server (web app creds)\n')}`);
   
     console.log(`stash (s)\t\t\t\t ${color.cyan('Stash a text peanut')}`);
     console.log(`pop (p) \t\t\t\t ${color.cyan('Pop stashed text. Asks to display, copy or exec')}`);
@@ -74,11 +78,23 @@ export function stateMachine(db, auth, user, action, args) {
     // Check console parameters
     switch (action) {
 
+      // Configure Server chosen
+      case 'server':
+      case 'sv':
+        manageServer();
+      break;
+
       // Stash a text peanut in your account
       case 'users':
       case 'u':
         manageUsers(user, db);
         break;
+
+      // Stash a text peanut in your account
+      case 'pop':
+        case 'p':
+          popPeanut(user, db);
+          break;
 
       // Stash a text peanut in your account
       case 'stash':
@@ -133,6 +149,12 @@ export function stateMachine(db, auth, user, action, args) {
     // Current user is not signed in with an account
     // Only commands available to be processedare register, login and about
     switch (action) {
+
+    // Configure Server chosen
+    case 'server':
+      case 'sv':
+        manageServer();
+      break;
 
       // register new account and send verification email
       case 'register':
@@ -194,5 +216,65 @@ export function decryptStringWithPrivateKey(privateKey, encryptedText) {
   const buffer = Buffer.from(encryptedText, 'base64');
   const decrypted = crypto.privateDecrypt(privateKey, buffer);
   return decrypted.toString('utf8');
+}
+
+// Manage default or custom firebase server
+async function manageServer(){
+
+  try {
+    // define file locations
+    const hiddenFolderPath = path.join(os.homedir(), '.peanuts');
+    const authFilePath = path.join(hiddenFolderPath, 'session.json');
+    const serverConfFilePath = path.join(hiddenFolderPath, 'server.conf');
+
+    let answer_action = await prompts.select({
+      message: color.cyan(`Choose Server`),
+      options: [  {value: 'default' , label: 'Default Public Server'}, 
+                  {value: 'custom' , label: 'Custom Private Server'}]
+    });
+    
+    if (answer_action == 'default') {
+      // just remove the server config file if it exist, when the app starts it will use default server
+      if (fs.existsSync(serverConfFilePath)) {
+        fs.unlinkSync(serverConfFilePath);
+      } 
+      console.log(color.green("Using default public server"));
+      process.exit(0);
+
+    } else if (answer_action == 'custom') {
+      
+        console.log("Enter your Firebase Web App Custom Project Keys");
+    
+        let apiKey = question(`${color.cyan('apiKey:')} `);
+        let authDomain = question(`${color.cyan('authDomain:')} `);
+        let databaseURL = question(`${color.cyan('databaseURL:')} `);
+        let projectId = question(`${color.cyan('projectId:')} `);
+    
+        let config_json = {
+          apiKey: apiKey,
+          authDomain: authDomain,
+          databaseURL: databaseURL,
+          projectId: projectId
+        }
+    
+        // save the config to a file
+        fs.writeFileSync(serverConfFilePath, JSON.stringify(config_json));
+    
+        // log out the user if it is cached
+        if (fs.existsSync(authFilePath)) {
+          fs.unlinkSync(authFilePath);
+        }
+        console.log(color.green("Using custom private public server"));
+        process.exit(0);
+  
+    }
+
+  } catch (error) {
+    console.log(error);
+    process.exit(1);
+  }
+
+  process.exit(0);
+
 }
   
