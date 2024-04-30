@@ -32,27 +32,22 @@ import {  encryptStringWithPublicKey,
     fetchJsonAPI } from './utilities.js';
 
 // Save user's data text 'peanut' to his list/stash of peanuts
-export async function stashPeanut (user, db, interactive = false) {
+export async function stashPeanut (user, db) {
 
+    // variables and constants for the loop
     const uid = user.uid;
     const userEmail = user.email;
     const firebase_email = userEmail.replace(/\./g, '_');
 
-    let data = question(`${color.cyan('\nType or Paste your terminal text to stash:\n')} `);
-
-    // Metadata to add to text are timestamp and user id/email
-    // get the firebase server timestamp no the local one
-    const timestamp = serverTimestamp();
-
-    // choose/manage categories list to be added to peanut text
+    // load categories we can use to stash under
     const categoryRef = ref(db, `users/${firebase_email}/private/categories`);
-
+    
     let categoriesList = []; // for display initially
     let categoriesListCopy = []; // for display to manage, slightly different content
     let categories = []; // to save extra data such as db ref to be able to delete
     let selectedCategory = "default";
 
-    let snapshot = await get(categoryRef);
+    const snapshot = await get(categoryRef);
 
     try { 
         if (snapshot.exists()) {
@@ -73,7 +68,6 @@ export async function stashPeanut (user, db, interactive = false) {
         process.exit(1);
     }
     categoriesList.reverse(); // latest first
-
     // make a copy of categoriesList for management (without default/manage)
     categoriesListCopy = categoriesList.slice();
 
@@ -81,105 +75,114 @@ export async function stashPeanut (user, db, interactive = false) {
     categoriesList.unshift({label: color.yellow("default"), value: "DAT:-1:default"}); //top
     categoriesList.push({label: color.cyan("#Manage#"), value: "MNG:manage"}); //bottom
 
-    // Clack JS prompt, show a list of all peanuts to select from, sorted by latest
-    let answer_category = await prompts.select({
-        message: 'Select a category',
-        options: categoriesList
-    });
+    do {
+        // text to stash
+        let data = question(`${color.cyan('\nType or Paste your terminal text to stash:\n')} `);
 
-    // Check if we directly got an answer or are going to manage categories
-    if (answer_category == "MNG:manage") {
-
-        // Append add category option
-        categoriesListCopy.push({label: color.cyan("#Add#"), value: "ADD:add"});
-
-        let manage_category = await prompts.select({
+        // Metadata to add to text are timestamp and user id/email
+        // get the firebase server timestamp no the local one
+        let timestamp = serverTimestamp();
+    
+        // Clack JS prompt, show a list of all peanuts to select from, sorted by latest
+        let answer_category = await prompts.select({
             message: 'Select a category',
-            options: categoriesListCopy
+            options: categoriesList
         });
-
-        if (manage_category == "ADD:add") {
-            let answer = question(`${color.cyan('\Add a new category:\n')} `);
-            // select it
-            selectedCategory = answer;
-            // save it to database
-            await push(categoryRef,{ name : answer });
-        } else {
-
-            // use it or delete i selected category
-            let manage_action = await prompts.select({
-                message: 'Select Action',
-                options: [
-                    {label: "Select", value: "select"},
-                    {label: `${color.yellow("#Delete#")}`, value: "delete"},
-                ]
+    
+        // Check if we directly got an answer or are going to manage categories
+        if (answer_category == "MNG:manage") {
+    
+            // Append add category option
+            categoriesListCopy.push({label: color.cyan("#Add#"), value: "ADD:add"});
+    
+            let manage_category = await prompts.select({
+                message: 'Select a category',
+                options: categoriesListCopy
             });
-
-            // user
-            if (manage_action == "select") {
-                // select and remove prefix
-                manage_category = manage_category.slice(4);
-                // remove index, disgard i
-                const [index, category] = manage_category.split(':');
-                selectedCategory = category;
+    
+            if (manage_category == "ADD:add") {
+                let answer = question(`${color.cyan('\Add a new category:\n')} `);
+                // select it
+                selectedCategory = answer;
+                // save it to database
+                await push(categoryRef,{ name : answer });
+            } else {
+    
+                // use it or delete i selected category
+                let manage_action = await prompts.select({
+                    message: 'Select Action',
+                    options: [
+                        {label: "Select", value: "select"},
+                        {label: `${color.yellow("#Delete#")}`, value: "delete"},
+                    ]
+                });
+    
+                // user
+                if (manage_action == "select") {
+                    // select and remove prefix
+                    manage_category = manage_category.slice(4);
+                    // remove index, disgard i
+                    let [index, category] = manage_category.split(':');
+                    selectedCategory = category;
+                }
+                // delete and use default
+                else if (manage_action == "delete") {
+                    // select and remove prefix
+                    manage_category = manage_category.slice(4);
+                    // get database ref to remove
+                    let [metaDataIndex, category] = manage_category.split(':');
+                    await remove(categories[metaDataIndex].databaseRef);
+                    
+                    selectedCategory = "default";
+                    console.log(`${color.green('Removed.')} Selecting default`);
+                }
             }
-            // delete and use default
-            else if (manage_action == "delete") {
-                // select and remove prefix
-                manage_category = manage_category.slice(4);
-                // get database ref to remove
-                const [metaDataIndex, category] = manage_category.split(':');
-                await remove(categories[metaDataIndex].databaseRef);
-                
-                selectedCategory = "default";
-                console.log(`${color.green('Removed.')} Selecting default`);
-            }
+            
+        } else {
+            // select and remove prefix
+            selectedCategory = answer_category.slice(4);
+            // remove index, disgard i
+            let [index, category] = selectedCategory.split(':');
+            selectedCategory = category;
         }
         
-    } else {
-        // select and remove prefix
-        selectedCategory = answer_category.slice(4);
-        // remove index, disgard i
-        const [index, category] = selectedCategory.split(':');
-        selectedCategory = category;
-    }
+        // We could impelement text sanitization here, but i don't envision a security scenario where it is needed
+        // In our use case, text is saved to firebase db, there is no sql queries to protect
+        // and text is displayed on terminal so there is no web browser ecosystem risks
+        // Users are supposed to copy paste these text commands and use them on their terminals
+        // So it is supposed to be executed manually/automatically by them
+        // The only think i can think of could be the text size/length, but if we put a limitation here
+        // What is the logic to define the limit? 
+        // 4096 is the linux terminal limit we can use that for now, but it is unlikely to be user
+        // to optimize/secure database storay space, setting it to 2048 here and in the security rules 
     
-    // We could impelement text sanitization here, but i don't envision a security scenario where it is needed
-    // In our use case, text is saved to firebase db, there is no sql queries to protect
-    // and text is displayed on terminal so there is no web browser ecosystem risks
-    // Users are supposed to copy paste these text commands and use them on their terminals
-    // So it is supposed to be executed manually/automatically by them
-    // The only think i can think of could be the text size/length, but if we put a limitation here
-    // What is the logic to define the limit? 
-    // 4096 is the linux terminal limit we can use that for now, but it is unlikely to be user
-    // to optimize/secure database storay space, setting it to 2048 here and in the security rules 
+        // check that data is not bigger than 4096 bytes
+        if (data.length > MAX_PEANUT_TEXT_LENGTH) {
+            console.log(`${color.red('Error:')} Peanut text is too long`);
+            process.exit(1);
+        }
+    
+        let peanutData = {
+            // Encrypt data with user public key and add meta data
+            data: encryptStringWithPublicKey(user.publicKey, data),
+            timestamp: timestamp,
+            userEmail: userEmail,
+            userId: uid,
+            category: selectedCategory
+        };
+    
+        try{
+            await push(ref(db, `users/${firebase_email}/private/peanut-stash`), peanutData);
+            console.log(`${color.green('Peanut stashed:')} ${data}`);
 
-    // check that data is not bigger than 4096 bytes
-    if (data.length > MAX_PEANUT_TEXT_LENGTH) {
-        console.log(`${color.red('Error:')} Peanut text is too long`);
-        process.exit(1);
-    }
-
-    const peanutData = {
-        // Encrypt data with user public key and add meta data
-        data: encryptStringWithPublicKey(user.publicKey, data),
-        timestamp: timestamp,
-        userEmail: userEmail,
-        userId: uid,
-        category: selectedCategory
-    };
-
-
-    // Save peanut text data to database
-    push(ref(db, `users/${firebase_email}/private/peanut-stash`), peanutData)
-        .then(() => {
-        console.log(`${color.green('Peanut stashed:')} ${data}`);
-        process.exit(0);
-        })
-        .catch((error) => {
-        console.error(`${color.red('Error saving peanut :')} ${error}`);
-        process.exit(1);
-        });
+        }
+        catch (error) {
+            console.error(`${color.red('Error saving peanut :')} ${error}`);
+            process.exit(1);
+        }
+        
+        console.log(color.yellow("Peanut Stashed. Add another or CTRL+C to exit"));
+    } while (true)
     
 }
 
@@ -301,10 +304,14 @@ export async function listPeanuts(user, db) {
                 // if not on the last page show next button
                 if (currentPage < Math.floor(listLength / maxItemsPerPage)) {
                     promptList.push({ 
-                        label: color.yellow('Next Page'), 
+                        label: color.cyan('Next Page'), 
                         value: "NXT:" + "Next",
     
                     }); 
+                    promptList.push({ 
+                        label: color.yellow('Cancel'), 
+                        value: "END:" + "Cancel",
+                    });
                 } else {
                     promptList.push({ 
                         label: color.yellow('Cancel'), 

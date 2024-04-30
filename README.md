@@ -4,7 +4,7 @@
 Collaborative command line cloud Stash, Share, Copy & Paste tool.
 
 Quickly stash, pop, send & receive console commands and text with your team.
-Helpful tiny tool for coders, IT and devops who work frequently within the terminal.
+Helpful tiny secure tool for coders, IT and devops who work frequently within the terminal.
 
 Unlike pastebin and its 3rd party tools/ecosystem, this tool and project is more focused on quick efficient terminal commands stashing/sharing and not on code sharing.
 
@@ -18,17 +18,19 @@ Firebase project (Optional)
 
 Requires access to internet
 
-##### Installation:
+##### Development Installation:
+
+npm install
+
+##### NPM Installation:
 
 npm i -g peanut-stash-cli
+
+[npm.com](https://www.npmjs.com/package/peanut-stash-cli)
 
 #####  Command:
 
 pnut
-
-##### NPM:
-
-[npm.com](https://www.npmjs.com/package/peanut-stash-cli)
 
 #### Arguments Usage:
 
@@ -52,13 +54,13 @@ pnut
 pnut stash  
 (or shorthand) 
 pnut s 
-(then type or paste your terminal text like : adb shell pm list packages -e) 
+(then type or paste your terminal text, ie : adb shell pm list packages -e) 
 
 pnut list
 (forward/use/delete)
 
 pnut pop
-(get the lasted one, stash or received, and do an action on it)
+(get the last stashed text peanut)
 
 ### Features:
 
@@ -86,7 +88,6 @@ The current security rules for the realtime database are in the repo.
 
 After each user of the group needs to download the json and load it once into peanuts cli with approripate server argument.
 
-
 The provided default testing server with peanuts works out of the box and is only for quick testing convience as it is multi tenant. It also is hosted on a free Firebase Spark plan that has quota limitations and is not guarantted to be always secure, maintained or upgraded. Neither myself or the project will be liable to any breaches in the future. 
 By continuing to use the default test server you agree to these terms and take personal responsiblity. The testing database is under development, things might get deleted/refactored and data privacy cannot be provided. Don't share any private/sensitive content on it.
 
@@ -98,12 +99,9 @@ In this spirit the design client logic/architecture on the main branch is to acc
 
 #### TODO for version 1.0.0:
 
-* DONE Implement 'pop' argument
-* Implement 'server' argument to import/use custom firebase project 
 * Change text peanuts categories option
 * Filter text peanuts by categories option
-* Add interactive stashing (looping prompts)
-* Add bulk stash import (from files)
+  
 * Add gif animation of example usage to readme.md
 * Add unit testing
 
@@ -112,6 +110,7 @@ In this spirit the design client logic/architecture on the main branch is to acc
 * Add comments to text peanuts
 * Refactor to use a providers class
 * Add offline stash support (will require providers class)
+* Add bulk stash import (from files)
 * Support interface for different serverless providers like supabase (will require providers class)
 * Support interface for rest api endpoints (will require providers class)
 * Complementary chrome brower extension pluging side project (different repo/project probably)
