@@ -151,8 +151,8 @@ export async function stashPeanut (user, db, interactive = false) {
     // So it is supposed to be executed manually/automatically by them
     // The only think i can think of could be the text size/length, but if we put a limitation here
     // What is the logic to define the limit? 
-    // 4096 is the linux terminal limit we can use that for now, unless users want to use this tool
-    // for other purposes such as quickly copy pasting notes. 
+    // 4096 is the linux terminal limit we can use that for now, but it is unlikely to be user
+    // to optimize/secure database storay space, setting it to 2048 here and in the security rules 
 
     // check that data is not bigger than 4096 bytes
     if (data.length > MAX_PEANUT_TEXT_LENGTH) {
@@ -212,6 +212,8 @@ export async function listPeanuts(user, db) {
                 // add to user's stash and remove from pending
                 await push(ref(db, `users/${firebase_email}/private/peanut-stash`), new_peanut);
                 await remove(child(pending_ref, peanut.key));
+
+                console.log(`${color.green('A peanut was received from ')} ${peanut.val().email}`);
     
             });
         }

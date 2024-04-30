@@ -18,35 +18,41 @@
           // it is used to receive text peanuts from other users
           // once received, it is deleted if the user accepts it and copies it to their stash
           "pending-text": {
-            ".read": "auth !== null && auth.uid !== null && auth.email_verified == true",
-            ".write": "auth !== null && auth.uid !== null && auth.email_verified == true",
-            // validate schema and enforce that others can only use their own uid and email
+            // give owner read write access
+            ".read":  "auth !== null && auth.uid !== null && auth.email_verified == true && root.child('users/' + $user_email + '/private/uid').val() === auth.uid",
+            ".write": "auth !== null && auth.uid !== null && auth.email_verified == true && root.child('users/' + $user_email + '/private/uid').val() === auth.uid",
+            // validate schema and enforce that others can only use their own uid and email to write
             // and make sure that userId of this contact is already added as a prop in private/contacts
             "$text":{
-              ".read" : "root.child('/users/' + $user_email + '/private/contacts/' + auth.email.replace('.','_') ).exists()",
+              // only owner can read this node
+              ".read" : false,
+              // whitelisted colleagues can write 
               ".write" : "root.child('/users/' + $user_email + '/private/contacts/' + auth.email.replace('.','_') ).exists()",
-              "email": { ".validate": "newData.val() === auth.email"},
-              "userId": { ".validate": "newData.val() === auth.uid"}, 
-              "timestamp": { ".validate": true},
-              "data": { ".validate": true},
-              "$other": { ".validate": false }
+              "email": { ".validate": "newData.isString() && newData.val() === auth.email && newData.val().length <= 128"},
+              "userId": { ".validate": "newData.isString() && newData.val() === auth.uid && newData.val().length <= 32"}, 
+              "timestamp": { ".validate": "newData.isNumber()"},
+              "data": { ".validate": "newData.isString() && newData.val().length <= 2048"},
+               "$other": { ".validate": false }
             }
           },
 
           // uid, publickey and email are write access only for the current user
           "uid": {
             ".read": "auth !== null && auth.uid !== null && auth.email_verified == true",
-            ".write": "auth !== null && auth.uid !== null  && auth.email_verified == true && root.child('users/' + $user_email + '/public/uid').val() === auth.uid" 
+            ".write": "auth !== null && auth.uid !== null  && auth.email_verified == true && root.child('users/' + $user_email + '/public/uid').val() === auth.uid",
+            ".validate": "newData.isString() && newData.val().length <= 32" 
           },
 
           "publicKey": {
             ".read": "auth !== null && auth.uid !== null && auth.email_verified == true",
-            ".write": "auth !== null && auth.uid !== null && auth.email_verified == true && root.child('users/' + $user_email + '/public/uid').val() === auth.uid" 
+            ".write": "auth !== null && auth.uid !== null && auth.email_verified == true && root.child('users/' + $user_email + '/public/uid').val() === auth.uid",
+            ".validate": "newData.isString() && newData.val().length <= 512"  
           },
 
           "email": {
             ".read": "auth !== null && auth.uid !== null && auth.email_verified == true",
-            ".write": "auth !== null && auth.uid !== null && auth.email_verified == true && root.child('users/' + $user_email + '/public/uid').val() === auth.uid" 
+            ".write": "auth !== null && auth.uid !== null && auth.email_verified == true && root.child('users/' + $user_email + '/public/uid').val() === auth.uid",
+            ".validate": "newData.isString() && newData.val().length <= 128" 
           },
           "$other": { ".validate": false }
         },
@@ -55,22 +61,22 @@
         "private": {
           ".read": "auth !== null && auth.uid !== null && auth.email_verified == true && root.child('users/' + $user_email + '/private/uid').val() === auth.uid",
           ".write": "auth !== null && auth.uid !== null && auth.email_verified == true && root.child('users/' + $user_email + '/private/uid').val() === auth.uid",
-          "peanuts-stash" : {
+          "peanut-stash" : {
             "$text":{
               ".indexOn": "timestamp",  // index on timestamp for query performance
-              "email": { ".validate": true},
-              "userId": { ".validate": true}, 
-              "timestamp": { ".validate": true},
-              "data": { ".validate": true},
-              "category": { ".validate": true},
+              "userEmail": { ".validate": "newData.isString() && newData.val().length <= 128"},
+              "userId": { ".validate": "newData.isString() && newData.val().length <= 32"}, 
+              "timestamp": { ".validate": "newData.isNumber()"},
+              "data": { ".validate": "newData.isString() && newData.val().length <= 2048"},
+              "category": { ".validate": "newData.isString() && newData.val().length <= 64"},
               "$other": { ".validate": false }
             }
-          }
-        }
+          },
+          "$other": { ".validate": false }
+        },
+        "$other": { ".validate": false }
       }
-    }
-    
-
-    
+    },
+    "$other": { ".validate": false }
   }
 }

@@ -63,9 +63,6 @@ const firebaseConfig = {
   authDomain: process.env.authDomain,
   databaseURL: process.env.databaseURL,
   projectId: process.env.projectId,
-  // storageBucket: process.env.storageBucket,
-  // messagingSenderId: process.env.messagingSenderId,
-  // appId: process.env.appId
 };
 
 // Initialize Firebase
@@ -131,6 +128,8 @@ function proccessInput(action) {
 
       // TODO: Quick app start testing Testing section, remove
       // console.log("Booting up");
+      // const pubRef = ref(db, 'users/' + firebase_email + '/public/');
+      // await update(pubRef, { email: '222' });
       // process.exit(0);
 
       // Run state machine based on args and user state
