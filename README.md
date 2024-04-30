@@ -1,4 +1,4 @@
-# Peanut Stash 1.0.0 
+# Peanut Stash 1.0.1 
 
 ### Description:
 Collaborative command line cloud Stash, Share, Copy & Paste tool.
@@ -97,7 +97,7 @@ Certain intentionally missing features like using custom access tokens to login 
 In this spirit the design client logic/architecture on the main branch is to access the realtime firebase database directly from the node app without going through API server endpoints. (and the pros and cons that comes with this approach). Firebase admin sdk cannot be used in such a project.
 
 
-#### TODO for version 1.0.0:
+#### TODO for version 1.0.2:
 
 * Change text peanuts categories option
 * Filter text peanuts by categories option
