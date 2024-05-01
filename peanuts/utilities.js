@@ -9,6 +9,12 @@ import path from 'path';
 import os from 'os';
 import { question } from 'readline-sync';
 
+import {  ref, 
+          push, 
+          get, 
+          remove,
+} from 'firebase/database';
+
 import {  loginUser,
           logoutUser,
           manageUsers,
@@ -21,7 +27,7 @@ import {  stashPeanut,
 
 // Show console help arguments
 export function showArgs() {
-    console.log(`\n${color.cyan('Peanut Stash 1.0.1')} - Collaborative command line cloud Stash, Share, Copy & Paste tool.\n`);
+    console.log(`\n${color.cyan('Peanut Stash 1.0.4')} - Collaborative command line cloud Stash, Share, Copy & Paste tool.\n`);
     console.log("Quickly stash, pop, send & receive console commands and text with your coding, IT, devops teams\n")
     console.log(`${color.yellow("Arguments Usage:\n")}`);
   
@@ -29,7 +35,10 @@ export function showArgs() {
     console.log(`login (i) <email>\t\t\t ${color.cyan('Login')}`);
     console.log(`logout (o) \t\t\t\t ${color.cyan('Logout')}`);
     console.log(`reset (r)\t\t\t\t ${color.cyan('Reset password')}\n`);
-    console.log(`users (u) \t\t\t\t ${color.cyan('Manage all connected users (active/pending)')}\n`);
+
+    console.log(`users (u) \t\t\t\t ${color.cyan('Manage all connected users')}\n`);
+
+    console.log(`categories (c) \t\t\t\t ${color.cyan('Manage categories')}\n`);
   
     console.log(`server (sv) \t\t\t\t ${color.cyan('Use default or custom firebase server (web app creds)\n')}`);
   
@@ -77,6 +86,12 @@ export function stateMachine(db, auth, user, action, args) {
 
     // Check console parameters
     switch (action) {
+
+      // Configure Server chosen
+      case 'categories':
+      case 'c':
+        manageCategories(user, db);
+      break;
 
       // Configure Server chosen
       case 'server':
@@ -127,7 +142,7 @@ export function stateMachine(db, auth, user, action, args) {
 
       case "about":
       case "a":
-        console.log(figlet.textSync("Peanut Stash 1.0.1", { horizontalLayout: "full" }));
+        console.log(figlet.textSync("Peanut Stash 1.0.4", { horizontalLayout: "full" }));
         console.log(`Quickly stash, pop, send & receive console commands and text with your team.\nHelpful tiny tool for coders, IT and devops who work frequently within the terminal.\n\nUnlike pastebin and its 3rd party tools/ecosystem, this tool and project is more focused on quick efficient terminal commands stashing/sharing and not on code sharing.\nhttps://www.npmjs.com/package/peanut-stash-cli`);
         process.exit(0);
         break;
@@ -276,5 +291,101 @@ async function manageServer(){
 
   process.exit(0);
 
+}
+
+// Manage Categories
+async function manageCategories(user, db){
+
+    // variables and constants for the loop
+    const userEmail = user.email;
+    const firebase_email = userEmail.replace(/\./g, '_');
+
+    // load categories we can use to stash under
+    const categoryRef = ref(db, `users/${firebase_email}/private/categories`);
+        
+    let categoriesList = []; // for display initially
+    let categories = []; // to save extra data such as db ref to be able to delete
+
+    const snapshot = await get(categoryRef);
+
+    try { 
+        if (snapshot.exists()) {
+            let index = 0;
+            snapshot.forEach(element => {
+                categories.push({
+                    name: element.val().name,
+                    databaseRef: element.ref
+                });
+                categoriesList.push({label: element.val().name, value: `DAT:${index}:` + element.val().name});
+                index++;
+            });
+
+        } else 
+        categoriesList = []; 
+    } catch(error) {
+        console.log(`${color.red('Error Loading Categories:')} ${error}`);
+        process.exit(1);
+    }
+    categoriesList.reverse(); // latest first
+
+    categoriesList.push({label: color.cyan("#Add#"), value: "ADD:add"}); //bottom
+    categoriesList.push({label: color.yellow("Cancel"), value: "CNL:cancel"}); //bottom
+
+    let answer_category = await prompts.select({
+      message: 'Select a category',
+      options: categoriesList
+    });
+
+    if (answer_category.substring(0, 4) == "CNL:") {
+
+      console.log(`${color.green('Cancelled action.')}`);
+      process.exit(0);
+    }
+    else if (answer_category.substring(0, 4) == "ADD:") {
+
+      let answer = question(`${color.cyan('\Add a new category:\n')} `);
+      // save it to database
+      await push(categoryRef,{ name : answer });
+
+      console.log(`${color.green('Success: Category added')}`);
+      process.exit(0);
+    } 
+    else if (answer_category.substring(0, 4) == "DAT:") {
+
+      let manage_action = await prompts.select({
+        message: 'Select Action',
+        options: [
+            {label: color.yellow("Cancel"), value: "cancel"},
+            {label: `${color.red("#Delete Category#")}`, value: "delete"},
+        ]
+      });
+
+      if (manage_action == "cancel") {
+        console.log(`${color.green('Cancelled action.')}`);
+        process.exit(0);
+      }
+      else if (manage_action == "delete") {
+
+            const shouldDelete = await prompts.confirm({
+              message: 'Are you Sure?',
+            })
+
+            if (shouldDelete) {
+              // select and remove prefix
+              answer_category = answer_category.slice(4);
+              // get database ref to remove
+              let [metaDataIndex, category] = answer_category.split(':');
+              await remove(categories[metaDataIndex].databaseRef);
+              
+              console.log(`${color.green('Success: Category deleted. Existing peanut stash not affected. Re-categorize them.')}`);
+              process.exit(0);
+            } else {
+              console.log(`${color.green('Cancelled action.')}`);
+              process.exit(0);
+            }
+      }    
+      process.exit(0); // code should not reach here (inreccorrect usage)
+    }
+    process.exit(0);
 }
   

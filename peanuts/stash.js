@@ -39,43 +39,43 @@ export async function stashPeanut (user, db) {
     const userEmail = user.email;
     const firebase_email = userEmail.replace(/\./g, '_');
 
-    // load categories we can use to stash under
-    const categoryRef = ref(db, `users/${firebase_email}/private/categories`);
-    
-    let categoriesList = []; // for display initially
-    let categoriesListCopy = []; // for display to manage, slightly different content
-    let categories = []; // to save extra data such as db ref to be able to delete
-    let selectedCategory = "default";
-
-    const snapshot = await get(categoryRef);
-
-    try { 
-        if (snapshot.exists()) {
-            let index = 0;
-            snapshot.forEach(element => {
-                categories.push({
-                    name: element.val().name,
-                    databaseRef: element.ref
-                });
-                categoriesList.push({label: element.val().name, value: `DAT:${index}:` + element.val().name});
-                index++;
-            });
-
-        } else 
-        categoriesList = []; 
-    } catch(error) {
-        console.log(`${color.red('Error Loading Categories:')} ${error}`);
-        process.exit(1);
-    }
-    categoriesList.reverse(); // latest first
-    // make a copy of categoriesList for management (without default/manage)
-    categoriesListCopy = categoriesList.slice();
-
-    // add default category with suffix
-    categoriesList.unshift({label: color.yellow("default"), value: "DAT:-1:default"}); //top
-    categoriesList.push({label: color.cyan("#Manage#"), value: "MNG:manage"}); //bottom
-
     do {
+        // load categories we can use to stash under
+        const categoryRef = ref(db, `users/${firebase_email}/private/categories`);
+        
+        let categoriesList = []; // for display initially
+        let categoriesListCopy = []; // for display to manage, slightly different content
+        let categories = []; // to save extra data such as db ref to be able to delete
+        let selectedCategory = "default";
+
+        const snapshot = await get(categoryRef);
+
+        try { 
+            if (snapshot.exists()) {
+                let index = 0;
+                snapshot.forEach(element => {
+                    categories.push({
+                        name: element.val().name,
+                        databaseRef: element.ref
+                    });
+                    categoriesList.push({label: element.val().name, value: `DAT:${index}:` + element.val().name});
+                    index++;
+                });
+
+            } else 
+            categoriesList = []; 
+        } catch(error) {
+            console.log(`${color.red('Error Loading Categories:')} ${error}`);
+            process.exit(1);
+        }
+        categoriesList.reverse(); // latest first
+        // make a copy of categoriesList for management (without default/manage)
+        categoriesListCopy = categoriesList.slice();
+
+        // add default category with suffix
+        categoriesList.unshift({label: color.yellow("default"), value: "DAT:-1:default"}); //top
+        categoriesList.push({label: color.cyan("#Add#"), value: "ADD:add"}); //bottom
+
         // text to stash
         let data = question(`${color.cyan('\nType or Paste your terminal text to stash:\n')} `);
 
@@ -90,58 +90,18 @@ export async function stashPeanut (user, db) {
         });
     
         // Check if we directly got an answer or are going to manage categories
-        if (answer_category == "MNG:manage") {
-    
-            // Append add category option
-            categoriesListCopy.push({label: color.cyan("#Add#"), value: "ADD:add"});
-    
-            let manage_category = await prompts.select({
-                message: 'Select a category',
-                options: categoriesListCopy
-            });
-    
-            if (manage_category == "ADD:add") {
-                let answer = question(`${color.cyan('\Add a new category:\n')} `);
-                // select it
-                selectedCategory = answer;
-                // save it to database
-                await push(categoryRef,{ name : answer });
-            } else {
-    
-                // use it or delete i selected category
-                let manage_action = await prompts.select({
-                    message: 'Select Action',
-                    options: [
-                        {label: "Select", value: "select"},
-                        {label: `${color.yellow("#Delete#")}`, value: "delete"},
-                    ]
-                });
-    
-                // user
-                if (manage_action == "select") {
-                    // select and remove prefix
-                    manage_category = manage_category.slice(4);
-                    // remove index, disgard i
-                    let [index, category] = manage_category.split(':');
-                    selectedCategory = category;
-                }
-                // delete and use default
-                else if (manage_action == "delete") {
-                    // select and remove prefix
-                    manage_category = manage_category.slice(4);
-                    // get database ref to remove
-                    let [metaDataIndex, category] = manage_category.split(':');
-                    await remove(categories[metaDataIndex].databaseRef);
-                    
-                    selectedCategory = "default";
-                    console.log(`${color.green('Removed.')} Selecting default`);
-                }
-            }
+        if (answer_category == "ADD:add") {
+
+            let answer = question(`${color.cyan('\Add a new category:\n')} `);
+            // select it
+            selectedCategory = answer;
+            // save it to database
+            await push(categoryRef,{ name : answer });
             
         } else {
             // select and remove prefix
             selectedCategory = answer_category.slice(4);
-            // remove index, disgard i
+            // remove index, disgard :
             let [index, category] = selectedCategory.split(':');
             selectedCategory = category;
         }
@@ -239,7 +199,9 @@ export async function listPeanuts(user, db) {
         if (snapshot.exists()) {
             
             // Convert snapshot to an array of values
-            const peanutList = [];
+            let peanutList = [];
+            // Create an backup of the peanut list used for filtering by category
+            let peanutListBackup = [];
 
             snapshot.forEach((peanut) => {
                 
@@ -259,8 +221,10 @@ export async function listPeanuts(user, db) {
             // Reverse the loaded array to have the latest items first
             peanutList.reverse();
 
+            peanutListBackup = peanutList.slice();
+
             // Enable pagination of the loaded list
-            const listLength = peanutList.length;
+            let listLength = peanutList.length;
             const maxItemsPerPage = MAX_ITEMS_PER_PAGE;
             let currentPage = 0;
 
@@ -309,10 +273,18 @@ export async function listPeanuts(user, db) {
     
                     }); 
                     promptList.push({ 
+                        label: color.green('By Category'), 
+                        value: "CAT:" + "Category",
+                    });
+                    promptList.push({ 
                         label: color.yellow('Cancel'), 
                         value: "END:" + "Cancel",
                     });
                 } else {
+                    promptList.push({ 
+                        label: color.green('By Category'), 
+                        value: "CAT:" + "Category",
+                    });
                     promptList.push({ 
                         label: color.yellow('Cancel'), 
                         value: "END:" + "Cancel",
@@ -381,6 +353,8 @@ export async function listPeanuts(user, db) {
                                 process.exit(1);
                             }
                             categoriesList.reverse(); // latest first
+
+                            categoriesList.push({label: color.yellow('default'), value: '0:default'});
 
                             let answer_category = await prompts.select({
                                 message: 'Select a category',
@@ -542,6 +516,65 @@ export async function listPeanuts(user, db) {
                             console.log(`Unsupported action: ${answer_action}`);
                             process.exit(0);
                     }
+                }
+                // View by category
+                else if (answer_peanut.substring(0, 4) == "CAT:") {
+                
+                        // load categories
+                        const categoryRef = ref(db, `users/${firebase_email}/private/categories`);
+                        let categoriesList = [];
+                        let categories = [];
+
+                        const categorySnapshot = await get(categoryRef);
+
+                        try { 
+                            if (categorySnapshot.exists()) {
+                                let index = 0;
+                                categorySnapshot.forEach(element => {
+                                    categories.push({
+                                        name: element.val().name,
+                                        databaseRef: element.ref
+                                    });
+                                    categoriesList.push({label: element.val().name, value: `DAT:${index}:` + element.val().name});
+                                    index++;
+                                });
+
+                            } else 
+                            categoriesList = []; 
+                        } catch(error) {
+                            console.log(`${color.red('Error Loading Categories:')} ${error}`);
+                            process.exit(1);
+                        }
+                        categoriesList.reverse(); // latest first
+
+                        categoriesList.push({label: `${color.cyan('All')}`, value: "ALL:ALL"});
+
+                        let answer_category = await prompts.select({
+                            message: 'Select a category',
+                            options: categoriesList
+                        });
+
+                        // Check if they selected a category or default ALL
+                        if (answer_category.substring(0,4) == "ALL:") {
+                            currentPage = 0;
+                            peanutList = peanutListBackup.slice();
+                            listLength = peanutList.length;
+                        } else {
+
+                            answer_category = answer_category.slice(4);
+                            let [category_index, category_name] = answer_category.split(':');
+    
+                            // reset current page and reload only the selected category of text peanuts
+                            currentPage = 0;
+                            peanutList = [];
+    
+                            peanutListBackup.forEach(element => {
+                                if (element.category == category_name) {
+                                    peanutList.push(element);
+                                }
+                            })    
+                            listLength = peanutList.length;              
+                        }
                 }
                 // If this is a next control, act on it
                 else if (answer_peanut.substring(0, 4) == "NXT:") {

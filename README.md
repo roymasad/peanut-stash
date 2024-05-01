@@ -1,4 +1,4 @@
-# Peanut Stash 1.0.1 
+# Peanut Stash 1.0.4 
 
 ### Description:
 Collaborative command line cloud Stash, Share, Copy & Paste tool.
@@ -27,9 +27,9 @@ You have edit config/local-testing-server.env and put your own local emulator ID
 
 ##### NPM Installation:
 
-npm i -g peanut-stash-cli
+npm i -g peanut-stash
 
-[npm.com](https://www.npmjs.com/package/peanut-stash-cli)
+[npm.com](https://www.npmjs.com/package/peanut-stash)
 
 #####  Command:
 
@@ -42,7 +42,9 @@ pnut
 * logout (o)                               Logout
 * reset (rs)                               Reset password
 
-* users (u)                                Manage all connected users (active/pending)
+* users (u)                                Manage all connected users
+
+* categories (c)                           Manage categories
 
 * server (sv)                              Use default or custom firebase server (web app creds)
 
@@ -100,17 +102,10 @@ Certain intentionally missing features like using custom access tokens to login 
 In this spirit, the design of is that of a purely client logic/architecture on the main branch which can access the realtime firebase database directly from the node app without going through API server endpoints or any paid features. (and the pros and cons that comes with this approach). Firebase admin sdk cannot be used in such a project since we arent using server modules and for security reasons can't use the admin sdk in an unsecure public client environment.
 
 
-#### TODO for version 1.0.2:
-
-* Change text peanuts categories option
-* Filter text peanuts by categories option
-  
-* Add gif animation of example usage to readme.md
-* Add unit testing
-
-# Roadmap for versions 1.1.+:
+# Roadmap for versions 1.0.4+:
 
 * Add comments to text peanuts
+* Add unit testing
 * Refactor to use a providers class
 * Add offline stash support (will require providers class)
 * Add bulk stash import (from files)

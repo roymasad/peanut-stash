@@ -79,9 +79,10 @@
             }
           },
           "contacts":{
-            "$contact": { ".validate": "newData.isString() && newData.val().length <= 128" },
-            "$other": { ".validate": false }
+            "$contact": { ".validate": "newData.isString() && newData.val().length <= 128" }
           },
+          "uid" : {".validate": "newData.isString() && newData.val().length <= 32"},
+          "privateKey" : {".validate": "newData.isString() && newData.val().length <= 2048"},
           "$other": { ".validate": false }
         },
         "$other": { ".validate": false }
