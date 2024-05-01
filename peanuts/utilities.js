@@ -279,7 +279,7 @@ async function manageServer(){
         if (fs.existsSync(authFilePath)) {
           fs.unlinkSync(authFilePath);
         }
-        console.log(color.green("Using custom private public server"));
+        console.log(color.green("Using custom private public server. You need to re-login."));
         process.exit(0);
   
     }
@@ -375,6 +375,7 @@ async function manageCategories(user, db){
               answer_category = answer_category.slice(4);
               // get database ref to remove
               let [metaDataIndex, category] = answer_category.split(':');
+              category = answer_category.substring(answer_category.indexOf(':') + 1);
               await remove(categories[metaDataIndex].databaseRef);
               
               console.log(`${color.green('Success: Category deleted. Existing peanut stash not affected. Re-categorize them.')}`);

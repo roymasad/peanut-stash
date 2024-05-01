@@ -132,15 +132,10 @@ export async function loginUser(email, auth , db) {
                     privateKey: privateKey,
                 });
 
-                // TODO: Figure how/where to add teams
+                // TODO: Figure how/where to add teams in the future when working on this feature
                 // await set(child(userRef,'private/teams'), { 
                 //     dummy: 'default',
                 // });
-
-                const prop = userCredential.user.email.replace(/\./g, '_');
-                await update(child(userRef,'private/contacts'), { 
-                    [prop] : "email"
-                });
 
                 console.log(`${color.green('\nSuccess:')} User logged in`);
                 s.stop();

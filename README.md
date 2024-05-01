@@ -50,7 +50,7 @@ pnut
 
 * stash (s)                                Stash a text peanut
 * pop (p)                                  Pop stashed text. Asks to display, copy or exec
-* list (l)                                 Manage all stashed peanuts
+* list (l)                                 Use and manage all stashed peanuts
 
 * about (a)                                About Page
 

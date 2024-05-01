@@ -184,7 +184,7 @@ function proccessInput() {
   else {
     // User doesn't have login information saved (null)
     // the statemachine will process only the actions to login or register based on user state
-    user = null;
+    let user = null;
     stateMachine(db, auth, user, action, args);
   }
 

@@ -24,6 +24,7 @@ import * as prompts from '@clack/prompts'
 import clipboard from 'clipboardy';
 import { execSync } from 'child_process';
 import { question } from 'readline-sync';
+import open from 'open';
 
 import {MAX_ITEMS_PER_PAGE, MAX_PEANUT_TEXT_LENGTH} from './consts.js';
 
@@ -103,6 +104,7 @@ export async function stashPeanut (user, db) {
             selectedCategory = answer_category.slice(4);
             // remove index, disgard :
             let [index, category] = selectedCategory.split(':');
+            category = selectedCategory.substring(selectedCategory.indexOf(':') + 1);
             selectedCategory = category;
         }
         
@@ -305,9 +307,11 @@ export async function listPeanuts(user, db) {
                     answer_peanut = answer_peanut.slice(4);
 
                     // extract the index and the data from the answer
-                    const [metaDataIndex, str] = answer_peanut.split(':');
+                    let [metaDataIndex, str] = answer_peanut.split(':');
+                    str = answer_peanut.substring(answer_peanut.indexOf(':') + 1);
 
                     answer_peanut = str;
+                    
                     
                     // Clack JS prompt, select an action on the peanut
                     answer_action = await prompts.select({
@@ -362,6 +366,7 @@ export async function listPeanuts(user, db) {
                             });
 
                             let [category_index, category_name] = answer_category.split(':');
+                            category_name = answer_category.substring(answer_category.indexOf(':') + 1);
 
                             // update the category for the selected text peanut item
 
@@ -563,6 +568,7 @@ export async function listPeanuts(user, db) {
 
                             answer_category = answer_category.slice(4);
                             let [category_index, category_name] = answer_category.split(':');
+                            category_name = answer_category.substring(answer_category.indexOf(':') + 1);
     
                             // reset current page and reload only the selected category of text peanuts
                             currentPage = 0;
