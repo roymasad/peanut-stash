@@ -54,6 +54,8 @@ pnut
 * pop (p)                                  Pop stashed text. Asks to display, copy or exec
 * list (l)                                 Use and manage all stashed peanuts
 
+* askGemini (ai)                           Infer command lines using Gemini API (paid/free supported)
+
 * about (a)                                About Page
 
 #### Examples:
@@ -86,6 +88,7 @@ pnut pop
 * Color codded interactive prompts
 * Firebase realtime db security rules for autherization and access control of data
 * Public testing server with the project (read below notes)
+* Optional Integration with Gemini V1 API (Free/paid keys) to help create & explain command lines
 
 #### Config & troubleshooting
 

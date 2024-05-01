@@ -46,6 +46,8 @@ export function showArgs() {
     console.log(`pop (p) \t\t\t\t ${color.cyan('Pop stashed text. Asks to display, copy or exec')}`);
     console.log(`list (l) \t\t\t\t ${color.cyan('Manage all stashed peanuts')}\n`);
 
+    console.log(`askGemini (ai) \t\t\t\t ${color.cyan('Infer command lines using Gemini v1 API Key')}\n`);
+
     console.log(`about (a) \t\t\t\t ${color.cyan('About Page\n')}`);
   
     console.log(`${color.yellow("Examples:\n")}`);
@@ -86,6 +88,12 @@ export function stateMachine(db, auth, user, action, args) {
 
     // Check console parameters
     switch (action) {
+
+      // Configure Server chosen
+      case 'askGemini':
+      case 'ai':
+        askAI(user, db);
+      break;
 
       // Configure Server chosen
       case 'categories':
@@ -240,7 +248,7 @@ async function manageServer(){
     // define file locations
     const hiddenFolderPath = path.join(os.homedir(), '.peanuts');
     const authFilePath = path.join(hiddenFolderPath, 'session.json');
-    const serverConfFilePath = path.join(hiddenFolderPath, 'server.conf');
+    const serverConfFilePath = path.join(hiddenFolderPath, 'server.json');
 
     let answer_action = await prompts.select({
       message: color.cyan(`Choose Server`),
@@ -432,5 +440,189 @@ async function manageCategories(user, db){
       process.exit(0); // code should not reach here (inreccorrect usage)
     }
     process.exit(0);
+}
+
+// Ask AI(Gemini using API keys) to infer commands for you
+// Then select what do do with them (print/execute/clipboard/save/cancel)
+async function askAI(user, db) {
+
+  // first check if there is a ai.json json file saved in ~/.peanuts
+
+    // define file locations
+    const hiddenFolderPath = path.join(os.homedir(), '.peanuts');
+    const AIConfFilePath = path.join(hiddenFolderPath, 'ai.json');
+
+  if (fs.existsSync(AIConfFilePath)) {
+
+    console.log("AI configuration found");
+
+    // load api key
+    const aiData = fs.readFileSync(AIConfFilePath, 'utf8');
+    var aiJSON = JSON.parse(aiData);
+
+    // check if it is for gemini, for future support for other providers
+    if (aiJSON.provider != "geminiV1") {
+      console.log(color.yellow("AI configuration present is not for Gemini. Exiting. Delete ~/.peanuts/ai.json and add new api key."));
+      process.exit(0);
+    }
+
+    let answer_action = await prompts.select({
+      message: color.cyan(`Choose Action`),
+      options: [  {value: 'generate' , label: color.cyan('Generate console command')}, 
+                  {value: 'remove' , label: color.red('# Delete current API Key #')}]
+    });
+
+    if (prompts.isCancel(answer_action)) {
+      console.log(color.yellow("Cancelled"));
+      process.exit(0);
+    }
+
+    // Generate or delete actions
+    if (answer_action == 'generate') {
+
+      console.log(color.magenta("Important: Only ask about a console command to create, no other topic, and be concise."));
+
+      try {
+
+        var geminiQuetion = await read({prompt: `${color.cyan('How do i create a console command to.. ')} `});
+        if (geminiQuetion.length == 0)
+        {
+          console.log(`${color.yellow("Error: Empty text")}`);
+          process.exit(0);
+        }
+
+        var geminiResponse = await generateGeminiAnswers(geminiQuetion, aiJSON.apiKey, 'generate');
+
+        console.log("");
+        console.log(color.green(geminiResponse));
+        console.log("");
+
+        process.exit(0);
+
+      } catch(error) {
+        if (error == "Error: canceled")
+            console.log(`${color.yellow("Cancelled")}`);
+        else console.log(`${color.yellow(error)}`);
+        process.exit(0);
+      }
+      
+    } else if (answer_action == 'remove') {
+      
+      const shouldDelete = await prompts.confirm({
+        message: 'Are you Sure?',
+      });
+
+      if (prompts.isCancel(shouldDelete)) {
+        console.log(color.yellow("Cancelled"));
+        process.exit(0);
+      }
+
+      if (shouldDelete) {
+        // remove the config file
+        fs.unlinkSync(AIConfFilePath);
+        console.log(`${color.green('Success: gemini API key removed. Relogin with new key.')}`);
+        process.exit(0);
+      } else {
+        console.log(`${color.green('Cancelled action.')}`);
+        process.exit(0);
+      }
+
+    }
+
+    process.exit(0);
+  }
+  else {
+    console.log(color.yellow("AI configuration not found. One is needed to infer commands."));
+    // Ask the user to input their gemini API key so we can save as json to AIConfFilePath
+
+    try {
+      var geminiAPIKey = await read({prompt: `${color.cyan('Enter Gemini API app key: ')} `});
+      if (geminiAPIKey.length == 0)
+      {
+        console.log(`${color.yellow("Error: Empty text")}`);
+        process.exit(0);
+      }
+
+      let config_json = {
+        apiKey: geminiAPIKey,
+        provider : "geminiV1"   // this is for version1 of gemini
+      }
+
+      // save the config to a file
+      fs.writeFileSync(AIConfFilePath, JSON.stringify(config_json));
+
+      console.log(`${color.green('Success: gemini API key saved. Rerun command.')}`);
+      process.exit(0);
+
+    } catch(error) {
+        console.log(`${color.yellow(error)}`);
+        process.exit(0);
+    }
+
+    process.exit(0);
+
+  }
+
+  process.exit(0);
+
+}
+
+// Gemini V1 API inference helper function
+export async function generateGeminiAnswers(promptQuestion, apiKey, mode = "generate") {
+  
+  // add a bit of prompt engineering to limit the discuss to cli command
+  if (mode == "generate") 
+  {
+    promptQuestion = "i need to create a specific computer console command, how do i do the following: START OF QUESTION : " + promptQuestion;
+    promptQuestion += ". END OF QUESTION. IMPORTANT NOTES, don't explain, only output the selected command/parameters to run and choose the most suitable recommended relevant answer for this request" 
+    promptQuestion += ". also if the question's topic is/was not specifically about cli/terminal/console commands generation in the context of computer coding, devops and IT or if you are in doubt about the question's topic, don't reply, just only say 'Invalid prompt'";        
+  }
+  else if (mode == "explain")
+  {
+    promptQuestion = "i need help explaining the following console/terminal computer command: START OF QUESTION:" + promptQuestion;
+    promptQuestion += ". END OF QUESTION. IMPORTANT NOTES, limit your answer to a few lines";
+    promptQuestion += ". also if the question's topic is/was not specifically about cli/terminal/console commands in the context of computer coding, devops and IT or if you are in doubt about the question's topic, don't reply, just only say 'Invalid prompt'";  
+  }
+    
+  try {
+      // Define the request body for the gemini endpoint
+      const requestBody = {
+        contents: [
+          {
+            parts: [
+              {
+                text: promptQuestion
+              }
+            ]
+          }
+        ]
+      };
+
+      // Define the URL with the API key
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`;
+
+      // Define request options
+      const options = {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(requestBody)
+      };
+
+      // Send the request
+      const response = await fetch(url, options);
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+
+      // Parse and return the response data
+      const responseData = await response.json();
+      const answer = responseData.candidates[0].content.parts[0].text;
+      return answer;
+  } catch (error) {
+      console.error('AI Error:', error);
+      process.exit(1)
+  }
 }
   

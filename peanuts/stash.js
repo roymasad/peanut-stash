@@ -25,11 +25,15 @@ import clipboard from 'clipboardy';
 import { execSync } from 'child_process';
 import {read} from 'read';
 import open from 'open';
+import fs from 'fs';
+import path from 'path';
+import os from 'os';
 
 import {MAX_ITEMS_PER_PAGE, MAX_PEANUT_TEXT_LENGTH} from './consts.js';
 
 import {  encryptStringWithPublicKey, 
     decryptStringWithPrivateKey, 
+    generateGeminiAnswers,
     fetchJsonAPI } from './utilities.js';
 
 // Save user's data text 'peanut' to his list/stash of peanuts
@@ -355,6 +359,7 @@ export async function listPeanuts(user, db) {
                                     {value: 'print' , label: 'Print'},
                                     {value: 'share' , label: color.blue('Share with user')},
                                     {value: 'category' , label: color.blue('Change category')},
+                                    {value: 'ai' , label: color.cyan('Ask AI to explain')},
                                     {value: 'cancel' , label: color.yellow('Cancel')},
                                     {value: 'delete' , label: color.red('# Delete #')},
                                     {value: 'execute' , label: color.cyan('# Execute/Open #')}, ]
@@ -367,6 +372,36 @@ export async function listPeanuts(user, db) {
 
                     // Excute logic of selected action
                     switch (answer_action) {
+
+                        case 'ai':
+
+                        const hiddenFolderPath = path.join(os.homedir(), '.peanuts');
+                        const AIConfFilePath = path.join(hiddenFolderPath, 'ai.json');
+                    
+                        if (fs.existsSync(AIConfFilePath)) {
+
+                            try {
+                                const AIConfFile = fs.readFileSync(AIConfFilePath, 'utf8');
+                                const AIConf = JSON.parse(AIConfFile);
+
+                                var geminiResponse = await generateGeminiAnswers(answer_peanut, AIConf.apiKey, "explain");
+
+                                console.log("");
+                                console.log(color.green(geminiResponse));
+                                console.log("");                               
+                                process.exit(0);
+
+                            } catch(error) {
+                                console.log(`${color.red('Error Loading AI Configuration:')} ${error}`);
+                                process.exit(1);
+                            }
+                        }
+                        else {
+                            console.log(color.yellow(`AI configuration not found. One is needed to infer commands. Add one with pnut ai`));
+                            process.exit(0)
+                        }
+                        process.exit(0)
+                        break;
 
                         // Chance current text peanut category
                         case 'category':

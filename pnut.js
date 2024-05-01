@@ -61,7 +61,7 @@ function main() {
   const __dirname = dirname(__filename);
 
   const hiddenFolderPath = path.join(os.homedir(), '.peanuts');   // where we save our local config data
-  const serverConfFilePath = path.join(hiddenFolderPath, 'server.conf');
+  const serverConfFilePath = path.join(hiddenFolderPath, 'server.json');
 
   let firebaseConfig = {};
 
