@@ -48,6 +48,8 @@ import {  decryptDataSymmetrical,
           stateMachine,
           } from './peanuts/utilities.js';
 
+// Local Emulator flag
+let localEmulation = false;
 
 // Main start function
 function main() {
@@ -83,7 +85,8 @@ function main() {
     config( { path: __dirname + '/config/default-public-server.env' })
     // but reload all env for local firebase emulator testing server if flag to do so is set in public env file.
     if (process.env.useLocalEmulatorServerInstead == 'true') {
-      config( { path: __dirname + '/config/local-testing-server.env', override: true }) 
+      config( { path: __dirname + '/config/local-testing-server.env', override: true });
+      localEmulation = true;
       console.log(color.magenta("Please Note: You are using local emulator server."));
     } else {
       console.log(color.magenta("Please Note: You are using the public testing server."));
@@ -112,6 +115,12 @@ function proccessInput() {
   // Get firebase main objects
   const db = getDatabase();
   const auth = getAuth();
+
+  if (localEmulation) {
+    // local testing env for firebase, changing .env loaded doesn seem to work
+    connectAuthEmulator(auth, "http://127.0.0.1:9099");
+    connectDatabaseEmulator(db, "127.0.0.1", 9000);
+  }
 
   // Get command line arguments
   const args = process.argv.slice(2);
@@ -193,7 +202,4 @@ function proccessInput() {
 // Call Main entry point
 main();
 
-// TODO: Quick app start testing Testing section, remove
-// console.log("Booting up");
-// process.exit(0);
 

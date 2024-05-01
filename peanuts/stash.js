@@ -23,7 +23,7 @@ import color from 'picocolors';
 import * as prompts from '@clack/prompts'
 import clipboard from 'clipboardy';
 import { execSync } from 'child_process';
-import { question } from 'readline-sync';
+import {read} from 'read';
 import open from 'open';
 
 import {MAX_ITEMS_PER_PAGE, MAX_PEANUT_TEXT_LENGTH} from './consts.js';
@@ -77,8 +77,20 @@ export async function stashPeanut (user, db) {
         categoriesList.unshift({label: color.yellow("default"), value: "DAT:-1:default"}); //top
         categoriesList.push({label: color.cyan("#Add#"), value: "ADD:add"}); //bottom
 
-        // text to stash
-        let data = question(`${color.cyan('\nType or Paste your terminal text to stash:\n')} `);
+        try {
+            // text to stash
+            var data = await read({prompt: `${color.cyan('\nType or Paste your terminal text to stash:\n')} `});
+            if (data.length == 0)
+                {
+                    console.log(`${color.yellow("Error: Empty text")}`);
+                    process.exit(0);
+                }
+        } catch(error) {
+            if (error == "Error: canceled")
+                console.log(`${color.yellow("Cancelled")}`);
+            else console.log(`${color.yellow(error)}`);
+            process.exit(0);
+        }
 
         // Metadata to add to text are timestamp and user id/email
         // get the firebase server timestamp no the local one
@@ -89,11 +101,29 @@ export async function stashPeanut (user, db) {
             message: 'Select a category',
             options: categoriesList
         });
+
+        if (prompts.isCancel(answer_category)) {
+            console.log(color.yellow("Cancelled"));
+            process.exit(0);
+        }
     
         // Check if we directly got an answer or are going to manage categories
         if (answer_category == "ADD:add") {
 
-            let answer = question(`${color.cyan('\Add a new category:\n')} `);
+            try {
+                var answer = await read({ prompt: `${color.cyan('\Add a new category:\n')} `});
+                if (answer.length == 0)
+                {
+                    console.log(`${color.yellow("Error: Empty text")}`);
+                    process.exit(0);
+                }
+            } catch(error) {
+                if (error == "Error: canceled")
+                    console.log(`${color.yellow("Cancelled")}`);
+                else console.log(`${color.yellow(error)}`);
+                process.exit(0);
+            }
+
             // select it
             selectedCategory = answer;
             // save it to database
@@ -300,6 +330,11 @@ export async function listPeanuts(user, db) {
                     options: promptList
                 });
 
+                if (prompts.isCancel(answer_peanut)) {
+                    console.log(color.yellow("Cancelled"));
+                    process.exit(0);
+                }
+
                 // If this is a data, act on it
                 if (answer_peanut.substring(0, 4) == "DAT:") {
  
@@ -324,6 +359,11 @@ export async function listPeanuts(user, db) {
                                     {value: 'delete' , label: color.red('# Delete #')},
                                     {value: 'execute' , label: color.cyan('# Execute/Open #')}, ]
                         });
+
+                    if (prompts.isCancel(answer_action)) {
+                        console.log(color.yellow("Cancelled"));
+                        process.exit(0);
+                    }
 
                     // Excute logic of selected action
                     switch (answer_action) {
@@ -365,6 +405,11 @@ export async function listPeanuts(user, db) {
                                 options: categoriesList
                             });
 
+                            if (prompts.isCancel(answer_category)) {
+                                console.log(color.yellow("Cancelled"));
+                                process.exit(0);
+                            }
+
                             let [category_index, category_name] = answer_category.split(':');
                             category_name = answer_category.substring(answer_category.indexOf(':') + 1);
 
@@ -405,6 +450,11 @@ export async function listPeanuts(user, db) {
                                         message: 'Select a User',
                                         options: promptList
                                     });
+
+                                    if (prompts.isCancel(answer_user)) {
+                                        console.log(color.yellow("Cancelled"));
+                                        process.exit(0);
+                                    }
 
                                     if (answer_user == 'cancel') {
                                         console.log(`${color.cyan('\nCancelled..')}\n`);
@@ -564,6 +614,11 @@ export async function listPeanuts(user, db) {
                             message: 'Select a category',
                             options: categoriesList
                         });
+
+                        if (prompts.isCancel(answer_category)) {
+                            console.log(color.yellow("Cancelled"));
+                            process.exit(0);
+                        }
 
                         // Check if they selected a category or default ALL
                         if (answer_category.substring(0,4) == "ALL:") {

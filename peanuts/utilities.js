@@ -7,7 +7,7 @@ import clipboard from 'clipboardy';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
-import { question } from 'readline-sync';
+import {read} from 'read';
 
 import {  ref, 
           push, 
@@ -247,6 +247,11 @@ async function manageServer(){
       options: [  {value: 'default' , label: 'Default Public Server'}, 
                   {value: 'custom' , label: 'Custom Private Server'}]
     });
+
+    if (prompts.isCancel(answer_action)) {
+      console.log(color.yellow("Cancelled"));
+      process.exit(0);
+    }
     
     if (answer_action == 'default') {
       // just remove the server config file if it exist, when the app starts it will use default server
@@ -259,12 +264,25 @@ async function manageServer(){
     } else if (answer_action == 'custom') {
       
         console.log("Enter your Firebase Web App Custom Project Keys");
+      
+        try {
+          var apiKey = await read({ prompt: `${color.cyan('apiKey:')} `});
+          var authDomain = await read({prompt: `${color.cyan('authDomain:')} `});
+          var databaseURL = await read({prompt: `${color.cyan('databaseURL:')} `});
+          var projectId = await read({prompt: `${color.cyan('projectId:')} `});
+          if (apiKey.length == 0 || authDomain.length == 0 || databaseURL.length == 0 || projectId.length == 0)
+          {
+              console.log(`${color.yellow("Error: Empty text")}`);
+              process.exit(0);
+          }
+        } catch(error) {
+            if (error == "Error: canceled")
+                console.log(`${color.yellow("Cancelled")}`);
+            else console.log(`${color.yellow(error)}`);
+            process.exit(0);
+        }
     
-        let apiKey = question(`${color.cyan('apiKey:')} `);
-        let authDomain = question(`${color.cyan('authDomain:')} `);
-        let databaseURL = question(`${color.cyan('databaseURL:')} `);
-        let projectId = question(`${color.cyan('projectId:')} `);
-    
+
         let config_json = {
           apiKey: apiKey,
           authDomain: authDomain,
@@ -336,6 +354,11 @@ async function manageCategories(user, db){
       options: categoriesList
     });
 
+    if (prompts.isCancel(answer_category)) {
+      console.log(color.yellow("Cancelled"));
+      process.exit(0);
+    }
+
     if (answer_category.substring(0, 4) == "CNL:") {
 
       console.log(`${color.green('Cancelled action.')}`);
@@ -343,7 +366,18 @@ async function manageCategories(user, db){
     }
     else if (answer_category.substring(0, 4) == "ADD:") {
 
-      let answer = question(`${color.cyan('\Add a new category:\n')} `);
+      try {
+        var answer = await read({prompt: `${color.cyan('\Add a new category:\n')} `});
+        if (answer.length == 0)
+        {
+            console.log(`${color.yellow("Error: Empty text")}`);
+            process.exit(0);
+        }
+      } catch(error) {
+          console.log(`${color.yellow(error)}`);
+          process.exit(0);
+      }
+      
       // save it to database
       await push(categoryRef,{ name : answer });
 
@@ -359,6 +393,11 @@ async function manageCategories(user, db){
             {label: `${color.red("#Delete Category#")}`, value: "delete"},
         ]
       });
+
+      if (prompts.isCancel(manage_action)) {
+        console.log(color.yellow("Cancelled"));
+        process.exit(0);
+      }
 
       if (manage_action == "cancel") {
         console.log(`${color.green('Cancelled action.')}`);

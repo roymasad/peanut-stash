@@ -42,6 +42,6 @@
     "node-machine-id": "1.1.12",
     "open": "10.1.0",
     "picocolors": "1.0.0",
-    "readline-sync": "1.4.10"
+    "read": "3.0.1"
   }
 }

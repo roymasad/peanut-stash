@@ -17,7 +17,7 @@ import {  getAuth,
  } from "firebase/auth";
 
 import color from 'picocolors';
-import { question } from 'readline-sync';
+import {read} from 'read';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
@@ -39,7 +39,19 @@ export async function loginUser(email, auth , db) {
     process.exit(1);
     }
 
-    var password = question('Enter your password: ', { hideEchoBack: true });
+    try {
+        var password = await read({prompt: 'Enter your password: ', silent: true, replace: '*'});
+        if (password.length == 0)
+        {
+            console.log(`${color.yellow("Error: Empty text")}`);
+            process.exit(0);
+        }
+      } catch(error) {
+          if (error == "Error: canceled")
+              console.log(`${color.yellow("Cancelled")}`);
+          else console.log(`${color.yellow(error)}`);
+          process.exit(0);
+      }
 
     const s = prompts.spinner();
     s.start('Logging in user...'); // spinner
@@ -163,7 +175,7 @@ export async function loginUser(email, auth , db) {
 }
 
 // Register new user
-export function registerUser(email, auth) {
+export async function registerUser(email, auth) {
          
     // Is email valid
     if (!isValidEmail(email)) {
@@ -174,9 +186,22 @@ export function registerUser(email, auth) {
     // Get the password interactively from user input
     // we dont want to pass the password as a parameter as this could cause a security issue
     // in the terminal command history
-    var password0 = question('Enter your password: ', { hideEchoBack: true });
 
-    var password = question('Enter your password again: ', { hideEchoBack: true });
+    try {
+        var password0 = await read({ prompt: 'Enter your password: ', silent: true, replace: '*'});
+
+        var password = await read({prompt: 'Enter your password again: ', silent: true, replace: '*'});
+        if (password0.length == 0 || password.length == 0)
+        {
+            console.log(`${color.yellow("Error: Empty text")}`);
+            process.exit(0);
+        }
+    } catch(error) {
+        if (error == "Error: canceled")
+            console.log(`${color.yellow("Cancelled")}`);
+        else console.log(`${color.yellow(error)}`);
+        process.exit(0);
+    }
 
     if (password0 != password) {
     console.log(`${color.red('Error:')} Passwords do not match`);
@@ -240,11 +265,23 @@ export function logoutUser() {
 }
 
 // Reset password, requires the user to be already login
-export function resetPassword(user) {
+export async function resetPassword(user) {
 
     // Compare new password with old password
 
-    var password_original = question('Enter your current password: ', { hideEchoBack: true });
+    try {
+        var password_original = await read ({prompt: 'Enter your current password: ', silent: true, replace: '*' });
+        if (password_original.length == 0)
+        {
+            console.log(`${color.yellow("Error: Empty text")}`);
+            process.exit(0);
+        }
+      } catch(error) {
+          if (error == "Error: canceled")
+              console.log(`${color.yellow("Cancelled")}`);
+          else console.log(`${color.yellow(error)}`);
+          process.exit(0);
+      }
 
     const hiddenFolderPath = path.join(os.homedir(), '.peanuts');
     const authFilePath = path.join(hiddenFolderPath, 'session.json');
@@ -262,9 +299,21 @@ export function resetPassword(user) {
         }
 
         // Get new password interactively twice
-        var newPassword0 = question('Enter your new password: ', { hideEchoBack: true });
+        try {
+            var newPassword0 = await read({ prompt: 'Enter your new password: ', silent: true, replace: '*' });
 
-        var newPassword1 = question('Enter your new password again: ', { hideEchoBack: true });
+            var newPassword1 = await read({prompt: 'Enter your new password again: ', silent: true, replace: '*' });
+            if (newPassword1.length == 0 || newPassword0.length == 0)
+            {
+                console.log(`${color.yellow("Error: Empty text")}`);
+                process.exit(0);
+            }
+        } catch(error) {
+            if (error == "Error: canceled")
+                console.log(`${color.yellow("Cancelled")}`);
+            else console.log(`${color.yellow(error)}`);
+            process.exit(0);
+        }
 
         if (newPassword0 != newPassword1) {
             console.log(`${color.red('Error:')} Passwords do not match`);
@@ -338,6 +387,11 @@ export async function manageUsers(user, db) {
             options: promptList
         });
 
+        if (prompts.isCancel(answer_user)) {
+            console.log(color.yellow("Cancelled"));
+            process.exit(0);
+        }
+
         if (answer_user == "CNL:USER") {
             console.log(`\n${color.green('Success:')} Cancelled`);
             process.exit(0);
@@ -346,7 +400,19 @@ export async function manageUsers(user, db) {
         else if (answer_user == "ADD:USER") {
             console.log(`\n${color.green('Success:')} Add new user`);
 
-            let user = question(color.cyan("Add user's email:\n"));
+            try {
+                var user = await read({ prompt: color.cyan("Add user's email:\n")});
+                if (user.length == 0)
+                {
+                    console.log(`${color.yellow("Error: Empty text")}`);
+                    process.exit(0);
+                }
+            } catch(error) {
+                if (error == "Error: canceled")
+                    console.log(`${color.yellow("Cancelled")}`);
+                else console.log(`${color.yellow(error)}`);
+                process.exit(0);
+            }
 
             if (!isValidEmail(user)) {
                 console.log(`${color.red('Error:')} Invalid email`);
@@ -378,6 +444,11 @@ export async function manageUsers(user, db) {
                             {value: 'delete' , label: color.red('# Delete #')}
                             ]
                 });
+            
+            if (prompts.isCancel(answer_action)) {
+                console.log(color.yellow("Cancelled"));
+                process.exit(0);
+            }
 
             if (answer_action == 'cancel') {
 
