@@ -365,7 +365,7 @@ export async function manageUsers(user, db) {
 
                 await update(contactsRef, {
                     [user]: "true"
-                })
+                });
 
                 console.log(`\n${color.green('Success:')} User added`);
                 process.exit(0);

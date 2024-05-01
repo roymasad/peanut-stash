@@ -343,6 +343,7 @@ export async function listPeanuts(user, db) {
                         options: [  {value: 'clipboard' , label: 'Clipboard'}, 
                                     {value: 'print' , label: 'Print'},
                                     {value: 'share' , label: color.blue('Share with user')},
+                                    {value: 'category' , label: color.blue('Change category')},
                                     {value: 'cancel' , label: color.yellow('Cancel')},
                                     {value: 'delete' , label: color.red('# Delete #')},
                                     {value: 'execute' , label: color.cyan('# Execute/Open #')}, ]
@@ -350,6 +351,51 @@ export async function listPeanuts(user, db) {
 
                     // Excute logic of selected action
                     switch (answer_action) {
+
+                        // Chance current text peanut category
+                        case 'category':
+
+                            // load categories
+                            const categoryRef = ref(db, `users/${firebase_email}/private/categories`);
+                            let categoriesList = [];
+                            let categories = [];
+
+                            const categorySnapshot = await get(categoryRef);
+
+                            try { 
+                                if (categorySnapshot.exists()) {
+                                    let index = 0;
+                                    categorySnapshot.forEach(element => {
+                                        categories.push({
+                                            name: element.val().name,
+                                            databaseRef: element.ref
+                                        });
+                                        categoriesList.push({label: element.val().name, value: `${index}:` + element.val().name});
+                                        index++;
+                                    });
+                        
+                                } else 
+                                categoriesList = []; 
+                            } catch(error) {
+                                console.log(`${color.red('Error Loading Categories:')} ${error}`);
+                                process.exit(1);
+                            }
+                            categoriesList.reverse(); // latest first
+
+                            let answer_category = await prompts.select({
+                                message: 'Select a category',
+                                options: categoriesList
+                            });
+
+                            let [category_index, category_name] = answer_category.split(':');
+
+                            // update the category for the selected text peanut item
+
+                            await update(peanutList[metaDataIndex].databaseRef, { category: category_name });
+
+                            console.log(`${color.green('Category Updated:')} ${category_name}`);
+                            process.exit(0);
+                            break;
 
                         // User cancelled action
                         case 'cancel':

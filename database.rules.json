@@ -72,6 +72,16 @@
               "$other": { ".validate": false }
             }
           },
+          "categories": {
+            "$category":{
+              "name": { ".validate": "newData.isString() && newData.val().length <= 64"},
+              "$other": { ".validate": false }
+            }
+          },
+          "contacts":{
+            "$contact": { ".validate": "newData.isString() && newData.val().length <= 128" },
+            "$other": { ".validate": false }
+          },
           "$other": { ".validate": false }
         },
         "$other": { ".validate": false }
