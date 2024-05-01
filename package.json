@@ -1,6 +1,6 @@
 {
   "name": "peanut-stash",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "type": "module",
   "description": "Collaborative command line cloud Stash, Share, Copy & Paste tool.",
   "main": "pnut.js",

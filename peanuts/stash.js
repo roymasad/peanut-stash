@@ -514,6 +514,11 @@ export async function listPeanuts(user, db) {
                                 message: 'Are you Sure?',
                             })
 
+                            if (prompts.isCancel(shouldDelete)) {
+                                console.log(color.yellow("Cancelled"));
+                                process.exit(0);
+                            }
+
                             if (shouldDelete) {
                                 // Delete item from firebase
                                 try {
@@ -537,6 +542,11 @@ export async function listPeanuts(user, db) {
                             const shouldContinue = await prompts.confirm({
                                 message: 'Are you Sure?',
                             });
+
+                            if (prompts.isCancel(shouldContinue)) {
+                                console.log(color.yellow("Cancelled"));
+                                process.exit(0);
+                            }
                             
                             if (shouldContinue) {
                                 // run selected peanut text in the terminal and display output
