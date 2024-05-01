@@ -69,10 +69,12 @@ pnut pop
 
 ### Features:
 
-* Cloud based collaborative copy pasting of terminal commands (peanuts)
-* Ready out of the box
-* Account your stash of commands anywhere you can login
-* Stash, retrieve, open, execute, categorise, clipboard copy, share strings quickly with colleagues
+* Cloud based collaborative copy pasting of terminal commands (peanuts!)
+* Requires an account with email verification
+* Ready out of the box to try out
+* Access your stash of commands anywhere you can login
+* Stash, retrieve, open, execute, categorise, clipboard copy, share console strings quickly with colleagues
+* Works on firebase free spark plan, you just need realtime DB and Auth with email enabled
 * Manage users to share text peanut with
 * Manage category labels to filter/organize your text peanuts
 * Simple cloud design requires no server logic/functions/api endpoints
@@ -82,6 +84,11 @@ pnut pop
 * Color codded interactive prompts
 * Firebase realtime db security rules for autherization and access control of data
 * Public testing server with the project (read below notes)
+
+#### Config & troubleshooting
+
+peanut saves under $user/.peanuts its configuration files (login and custom server)
+In case of uses, such as using wrong custom server config, you can remove those files to reset it
 
 #### Must Read, Important Notes:
 

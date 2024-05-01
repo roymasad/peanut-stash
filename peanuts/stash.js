@@ -415,21 +415,27 @@ export async function listPeanuts(user, db) {
                                     const publicKeyRef = ref(db, `users/${answer_user}/public/publicKey`);
                                     snapshot = await get(publicKeyRef);
 
-                                    let publicKey = snapshot.val();
+                                    if (snapshot.exists()) {
+                                        let publicKey = snapshot.val();
 
-                                    // Copy selected item to user's pending-texts
-                                    // and encrypt it with the user's public key
-                                    await push(ref(db, `users/${answer_user}/public/pending-text/`), {
-                                        data: encryptStringWithPublicKey(publicKey, answer_peanut),
-                                        timestamp: serverTimestamp(),
-                                        email: userEmail.replace(/\_/g, '.'),
-                                        userId: user.uid,
-                                    });
-                                    console.log(`\n${color.green('\nSuccess:')} Shared with user\n`);
-                                    process.exit(0);
+                                        // Copy selected item to user's pending-texts
+                                        // and encrypt it with the user's public key
+                                        await push(ref(db, `users/${answer_user}/public/pending-text/`), {
+                                            data: encryptStringWithPublicKey(publicKey, answer_peanut),
+                                            timestamp: serverTimestamp(),
+                                            email: userEmail.replace(/\_/g, '.'),
+                                            userId: user.uid,
+                                        });
+                                        console.log(`\n${color.green('\nSuccess:')} Shared with user\n`);
+                                        process.exit(0);
+                                    }
+                                    else {
+                                        console.log(`${color.red('Error:')} No User found`);
+                                        process.exit(1);
+                                    }     
                                 }
                                 else {
-                                    console.log(`${color.red('Error:')} No contacts found`);
+                                    console.log(`${color.red('Error:')} No User found`);
                                     process.exit(0);
                                 }
                             } catch (error) {
