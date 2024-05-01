@@ -10,6 +10,8 @@ Unlike pastebin and its 3rd party tools/ecosystem, this tool and project is more
 
 License: MIT
 
+![](https://github.com/roymasad/peanut-stash/blob/b98590830ec3fa2e806bb850a484cd6253c693e9/console.gif)
+
 ##### Requirements:
 
 Nodejs 20+
