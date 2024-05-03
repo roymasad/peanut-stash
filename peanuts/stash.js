@@ -313,7 +313,7 @@ export async function listPeanuts(user, db) {
             // if not on the last page show next button
             if (currentPage < Math.floor((listLength-1) / MAX_ITEMS_PER_PAGE)) {
                 promptList.push({ 
-                    label: color.magenta('Next Page'), 
+                    label: color.green('Next Page'), 
                     value: "NXT:" + "Next",
 
                 }); 
@@ -321,7 +321,7 @@ export async function listPeanuts(user, db) {
 
             if ((currentPage >= Math.floor((listLength-1) / MAX_ITEMS_PER_PAGE)) && currentPage != 0 ) {
                 promptList.push({ 
-                    label: color.magenta('Back Page'), 
+                    label: color.green('Back Page'), 
                     value: "BAK:" + "Back",
                 }); 
             } 
@@ -330,6 +330,17 @@ export async function listPeanuts(user, db) {
                 label: color.green('List by Category'), 
                 value: "CAT:" + "Category",
             });
+
+            const hiddenFolderPath = path.join(os.homedir(), '.peanuts');
+            const AIConfFilePath = path.join(hiddenFolderPath, 'ai.json');
+        
+            // Show this option only if AI Key is present
+            if (fs.existsSync(AIConfFilePath)) {
+                promptList.push({ 
+                    label: color.magenta('Ask AI to find'), 
+                    value: "FND:" + "Find",
+                });
+            }
 
             promptList.push({ 
                 label: color.cyan('Add'), 
@@ -703,6 +714,10 @@ export async function listPeanuts(user, db) {
                 // set the exitBehavior to return to come back to this function
                 await stashPeanut (user, db, "return");
             }
+            else if (answer_peanut.substring(0, 4) == "FND:") {
+                // set the exitBehavior to return to come back to this function
+                await aiFind(user, db);
+            }
             else if (answer_peanut.substring(0, 4) == "END:") {
                 console.log(`${color.yellow('Cancelled')}`);
                 process.exit(0);
@@ -746,5 +761,65 @@ export async function popPeanut(user, db) {
         }
 
     });
+}
+
+
+async function aiFind(user, db, peanuts) {
+
+    const userEmail = user.email;
+    const firebase_email = userEmail.replace(/\./g, '_');
+
+    const hiddenFolderPath = path.join(os.homedir(), '.peanuts');
+    const AIConfFilePath = path.join(hiddenFolderPath, 'ai.json');
+
+    if (fs.existsSync(AIConfFilePath)) {
+
+        // load api key
+        const aiData = fs.readFileSync(AIConfFilePath, 'utf8');
+        var aiJSON = JSON.parse(aiData);
+
+        const peanutRef = ref(db, `users/${firebase_email}/private/peanut-stash`);
+        let snapshot = await get(peanutRef);
+        var peanutList = [];
+
+        if (snapshot.exists()) {
+            
+            snapshot.forEach((peanut) => {
+                
+                // Decrypt data with user private key
+                let decryptedPeanut = decryptStringWithPrivateKey(user.privateKey, peanut.val().data);
+                                
+                peanutList.push(decryptedPeanut);
+            });
+        }
+
+        console.log(color.magenta("Important: Only ask to find a console command you stashed, no other topic, and be concise."));
+        console.log(color.magenta("(Gemini will search your entire terminal stash so LLM api key/version context window sizes apply)"));
+
+        try {
+
+            var geminiQuetion = await read({prompt: `${color.cyan('Find my stashed command that.. ')} `});
+            if (geminiQuetion.length == 0)
+            {
+              console.log(`${color.yellow("Error: Empty text")}`);
+              process.exit(0);
+            }
+    
+            var geminiResponse = await generateGeminiAnswers(geminiQuetion, aiJSON.apiKey, 'search' , peanutList);
+    
+            console.log("");
+            console.log(color.green(geminiResponse));
+            console.log("");
+
+            return;
+    
+        } catch(error) {
+            if (error == "Error: canceled")
+                console.log(`${color.yellow("Cancelled")}`);
+            else console.log(`${color.yellow(error)}`);
+            process.exit(0);
+        }
+
+    }
 }
 

@@ -569,7 +569,7 @@ async function askAI(user, db) {
 }
 
 // Gemini V1 API inference helper function
-export async function generateGeminiAnswers(promptQuestion, apiKey, mode = "generate") {
+export async function generateGeminiAnswers(promptQuestion, apiKey, mode = "generate", peanutList = null) {
   
   // add a bit of prompt engineering to limit the discuss to cli command
   if (mode == "generate") 
@@ -583,6 +583,16 @@ export async function generateGeminiAnswers(promptQuestion, apiKey, mode = "gene
     promptQuestion = "i need help explaining the following console/terminal computer command: START OF QUESTION:" + promptQuestion;
     promptQuestion += ". END OF QUESTION. IMPORTANT NOTES, limit your answer to a few lines";
     promptQuestion += ". also if the question's topic is/was not specifically about cli/terminal/console commands in the context of computer coding, devops and IT or if you are in doubt about the question's topic, don't reply, just only say 'Invalid prompt'";  
+  }
+  else if (mode == "search")
+  {
+    let promptQuestion2 = "i need help searching through the following list of terminal commmands: START OF LIST as comma separated array : [ " + peanutList.toString();
+    promptQuestion2 += ` ] . END OF LIST. Search for one matching terminal command that does the following task best: START OF DESCRIPTION: ${promptQuestion} . END OF DESCRIPTION `;
+    promptQuestion2 += `. IMPORTANT NOTES, limit your answer to only the command found as-it-is so i can copy paste it into the terminal`;
+    promptQuestion2 += '. if no command matching that task is found or you are not sure which to select just say "Not found"';
+    promptQuestion2 += ". also if the question's topic is not specifically my list of cli/terminal/console commands or if you are in doubt about the question's topic, don't reply, just only say 'Not found'";  
+  
+    promptQuestion = promptQuestion2;
   }
     
   try {
@@ -620,7 +630,14 @@ export async function generateGeminiAnswers(promptQuestion, apiKey, mode = "gene
       // Parse and return the response data
       const responseData = await response.json();
       const answer = responseData.candidates[0].content.parts[0].text;
-      return answer;
+
+      // double check if answer exists in peanut list already to ward off AI hallucination
+      if (mode == "search" && !peanutList.includes(answer)) {
+        return "Not found";
+      } else {
+        return answer;
+      } 
+      
   } catch (error) {
       console.error('AI Error:', error);
       process.exit(1)
