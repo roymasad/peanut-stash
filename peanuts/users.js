@@ -187,38 +187,41 @@ export async function registerUser(email, auth) {
     // we dont want to pass the password as a parameter as this could cause a security issue
     // in the terminal command history
 
-    try {
-        var password0 = await read({ prompt: 'Enter your password: ', silent: true, replace: '*'});
+    while(true)
+    {
+        try {
+            var password0 = await read({ prompt: 'Enter your password: ', silent: true, replace: '*'});
 
-        var password = await read({prompt: 'Enter your password again: ', silent: true, replace: '*'});
-        if (password0.length == 0 || password.length == 0)
-        {
-            console.log(`${color.yellow("Error: Empty text")}`);
-            process.exit(0);
+            var password = await read({prompt: 'Enter your password again: ', silent: true, replace: '*'});
+            if (password0.length == 0 || password.length == 0)
+            {
+                console.log(`${color.yellow("Error: Empty text")}`);
+                continue;
+            }
+        } catch(error) {
+            if (error == "Error: canceled")
+                console.log(`${color.yellow("Cancelled")}`);
+            else console.log(`${color.yellow(error)}`);
+            process.exit(1);
         }
-    } catch(error) {
-        if (error == "Error: canceled")
-            console.log(`${color.yellow("Cancelled")}`);
-        else console.log(`${color.yellow(error)}`);
-        process.exit(0);
-    }
 
-    if (password0 != password) {
-    console.log(`${color.red('Error:')} Passwords do not match`);
-    process.exit(1);
-    }
+        if (password0 != password) {
+            console.log(`${color.red('Error:')} Passwords do not match`);
+            continue;
+        }
 
-    // make sure password is at least 8 characters long and has at least one number, one uppercase letter, and one lowercase letter, and one special character
-    if (password.length < 8) {
-    console.log(`${color.red('Error:')} Password must be at least 8 characters long`);
-    process.exit(1);
-    }
+        // make sure password is at least 8 characters long and has at least one number, one uppercase letter, and one lowercase letter, and one special character
+        if (password.length < 8) {
+            console.log(`${color.red('Error:')} Password must be at least 8 characters long`);
+            continue;
+        }
 
-    if (!/[a-z]/.test(password) || !/[A-Z]/.test(password) || !/[0-9]/.test(password) || !/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) {
-    console.log(`${color.red('Error:')} Password must contain at least one number, one uppercase letter, one lowercase letter, and one special character`);
-    process.exit(1);
+        if (!/[a-z]/.test(password) || !/[A-Z]/.test(password) || !/[0-9]/.test(password) || !/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) {
+            console.log(`${color.red('Error:')} Password must contain at least one number, one uppercase letter, one lowercase letter, and one special character`);
+            continue;
+        }
+        break;
     }
-
     const s = prompts.spinner()
     s.start('Creating user...')
 
@@ -358,119 +361,133 @@ export async function manageUsers(user, db) {
     const userEmail = user.email;
     const firebase_email = userEmail.replace(/\./g, '_');
     
-    // for the security rules to apply easily (no child nesting)
-    // the contacts must all be props with the email as key (. replace by _)
-    const contactsRef = ref(db, `users/${firebase_email}/private/contacts`);
+    while(true) {
+        // for the security rules to apply easily (no child nesting)
+        // the contacts must all be props with the email as key (. replace by _)
+        const contactsRef = ref(db, `users/${firebase_email}/private/contacts`);
 
-    let snapshot = await get(contactsRef);
+        let snapshot = await get(contactsRef);
 
-    try {
-        let promptList = [];
-        if (snapshot.exists()) {
+        try {
+            let promptList = [];
+            if (snapshot.exists()) {
 
-            // Load all the propertie keys under snapshot into an array
-            // Convert snapshot key name into an array of values
-            const propArray = Object.keys(snapshot.val());
-            
-            propArray.forEach((prop) => {
-                promptList.push({ label: prop.replace(/\_/g, '.'), value: "DAT:" + prop });
-            })
-            // sort promptList alphabetically
-            promptList.sort((a, b) => a.label.localeCompare(b.label));
-        }
-        
-        promptList.push({ label: `${color.cyan('Add')}`, value: "ADD:USER" });
-        promptList.push({ label: `${color.yellow('Cancel')}`, value: "CNL:USER" });
-
-        let answer_user = await prompts.select({
-            message: 'Select a User',
-            options: promptList
-        });
-
-        if (prompts.isCancel(answer_user)) {
-            console.log(color.yellow("Cancelled"));
-            process.exit(0);
-        }
-
-        if (answer_user == "CNL:USER") {
-            console.log(`\n${color.green('Success:')} Cancelled`);
-            process.exit(0);
-        }
-        // add option was selected
-        else if (answer_user == "ADD:USER") {
-            console.log(`\n${color.green('Success:')} Add new user`);
-
-            try {
-                var user = await read({ prompt: color.cyan("Add user's email:\n")});
-                if (user.length == 0)
-                {
-                    console.log(`${color.yellow("Error: Empty text")}`);
-                    process.exit(0);
-                }
-            } catch(error) {
-                if (error == "Error: canceled")
-                    console.log(`${color.yellow("Cancelled")}`);
-                else console.log(`${color.yellow(error)}`);
-                process.exit(0);
+                // Load all the propertie keys under snapshot into an array
+                // Convert snapshot key name into an array of values
+                const propArray = Object.keys(snapshot.val());
+                
+                propArray.forEach((prop) => {
+                    promptList.push({ label: prop.replace(/\_/g, '.'), value: "DAT:" + prop });
+                })
+                // sort promptList alphabetically
+                promptList.sort((a, b) => a.label.localeCompare(b.label));
             }
-
-            if (!isValidEmail(user)) {
-                console.log(`${color.red('Error:')} Invalid email`);
-                process.exit(1);
-            }   
-            // add user as a prop to the contacts ref
-            else {
-
-                // make the email firebase compatibly
-                user = user.replace(/\./g, '_');
-
-                await update(contactsRef, {
-                    [user]: "true"
-                });
-
-                console.log(`\n${color.green('Success:')} User added`);
-                process.exit(0);
-            }
-        }
-        // a user was selected
-        else {
-            // remove prefix and get action
-            answer_user = answer_user.slice(4);
-
-            let answer_action = await prompts.select({
-                message: 'Action',
-                options: [ 
-                            {value: 'cancel' , label: 'Cancel'},
-                            {value: 'delete' , label: color.red('# Delete #')}
-                            ]
-                });
             
-            if (prompts.isCancel(answer_action)) {
+            promptList.push({ label: `${color.cyan('Add')}`, value: "ADD:USER" });
+            promptList.push({ label: `${color.yellow('Cancel')}`, value: "CNL:USER" });
+
+            let answer_user = await prompts.select({
+                message: 'Select a User',
+                options: promptList
+            });
+
+            if (prompts.isCancel(answer_user)) {
                 console.log(color.yellow("Cancelled"));
                 process.exit(0);
             }
 
-            if (answer_action == 'cancel') {
-
-                console.log(`\n Action Canceled`);
-                process.exit(0);
-
-            } else if (answer_action == 'delete') {
-
-                // remove the property from the contacts ref
-                await update(contactsRef, {
-                    [answer_user]: null
-                })
-
-                console.log(`\n${color.green('Success:')} User deleted`);
+            if (answer_user == "CNL:USER") {
+                console.log(`\n${color.yellow('Cancelled')}`);
                 process.exit(0);
             }
+            // add option was selected
+            else if (answer_user == "ADD:USER") {
 
+                try {
+                    var user = await read({ prompt: color.cyan("Add user's email:\n")});
+                    if (user.length == 0)
+                    {
+                        console.log(`${color.yellow("Error: Empty text")}`);
+                        continue;
+                    }
+                } catch(error) {
+                    if (error == "Error: canceled")
+                        console.log(`${color.yellow("Cancelled")}`);
+                    else console.log(`${color.yellow(error)}`);
+                    process.exit(0);
+                }
+
+                if (!isValidEmail(user)) {
+                    console.log(`${color.red('Error:')} Invalid email`);
+                    continue;
+                }   
+                // add user as a prop to the contacts ref
+                else {
+
+                    // make the email firebase compatibly
+                    user = user.replace(/\./g, '_');
+
+                    await update(contactsRef, {
+                        [user]: "true"
+                    });
+
+                    console.log(`\n${color.green('Success:')} User added. Make sure they create an account and add you to be able to share with you.`);
+                    continue;
+                }
+            }
+            // a user was selected
+            else {
+                // remove prefix and get action
+                answer_user = answer_user.slice(4);
+
+                let answer_action = await prompts.select({
+                    message: 'Action',
+                    options: [ 
+                                {value: 'cancel' , label: color.yellow('Cancel')},
+                                {value: 'delete' , label: color.red('# Delete #')}
+                                ]
+                    });
+                
+                if (prompts.isCancel(answer_action)) {
+                    console.log(color.yellow("Cancelled"));
+                    process.exit(0);
+                }
+
+                if (answer_action == 'cancel') {
+
+                    console.log(`\n Action Canceled`);
+                    continue;
+
+                } else if (answer_action == 'delete') {
+
+                    
+                    // Confirmation prompt for deletion
+                    const shouldDelete = await prompts.confirm({
+                        message: 'Are you Sure?',
+                    })
+
+                    if (prompts.isCancel(shouldDelete)) {
+                        console.log(color.yellow("Cancelled"));
+                        process.exit(0);
+                    }
+
+                    if (shouldDelete){
+                        // remove the property from the contacts ref
+                        await update(contactsRef, {
+                            [answer_user]: null
+                        })
+                    }
+                    
+                    console.log(`\n${color.green('Success:')} User deleted`);
+                    continue;
+                }
+
+            }
+            
+            
+        } catch(error) {
+            console.error(`\n${color.red('Error Loading Contacts:')} ${error.code}`);
+            process.exit(1);
         }
-        process.exit(0);
-        
-    } catch(error) {
-        console.error(`\n${color.red('Error Loading Contacts:')} ${error.code}`);
-        process.exit(1);
     }
 }

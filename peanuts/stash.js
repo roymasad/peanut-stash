@@ -79,11 +79,11 @@ export async function stashPeanut (user, db) {
 
         // add default category with suffix
         categoriesList.unshift({label: color.yellow("default"), value: "DAT:-1:default"}); //top
-        categoriesList.push({label: color.cyan("#Add#"), value: "ADD:add"}); //bottom
+        categoriesList.push({label: color.cyan("Add"), value: "ADD:add"}); //bottom
 
         try {
             // text to stash
-            var data = await read({prompt: `${color.cyan('\nType or Paste your terminal text to stash:\n')} `});
+            var data = await read({prompt: `${color.cyan('\nType or Paste your terminal text to stash, CTRL+C to exit loop:\n')} `});
             if (data.length == 0)
                 {
                     console.log(`${color.yellow("Error: Empty text")}`);
@@ -102,7 +102,7 @@ export async function stashPeanut (user, db) {
     
         // Clack JS prompt, show a list of all peanuts to select from, sorted by latest
         let answer_category = await prompts.select({
-            message: 'Select a category',
+            message: 'Select a category label',
             options: categoriesList
         });
 
@@ -115,7 +115,7 @@ export async function stashPeanut (user, db) {
         if (answer_category == "ADD:add") {
 
             try {
-                var answer = await read({ prompt: `${color.cyan('\Add a new category:\n')} `});
+                var answer = await read({ prompt: `${color.cyan('\Add a new category label:\n')} `});
                 if (answer.length == 0)
                 {
                     console.log(`${color.yellow("Error: Empty text")}`);
@@ -169,7 +169,7 @@ export async function stashPeanut (user, db) {
     
         try{
             await push(ref(db, `users/${firebase_email}/private/peanut-stash`), peanutData);
-            console.log(`${color.green('Peanut stashed:')} ${data}`);
+            console.log(color.green("Peanut Stashed. Add another or CTRL+C to exit"));
 
         }
         catch (error) {
@@ -177,7 +177,7 @@ export async function stashPeanut (user, db) {
             process.exit(1);
         }
         
-        console.log(color.yellow("Peanut Stashed. Add another or CTRL+C to exit"));
+        
     } while (true)
     
 }
@@ -229,8 +229,12 @@ export async function listPeanuts(user, db) {
     // Realtime DB doesnt have a reverse sort
     // so index in the rules timestamp, load it, and reverse the loaded list
 
+    var filterCategory = "all:all";
+
     // Read data from the database
-    get(peanutRef).then(async (snapshot) => {
+    while(true) {
+        
+        let snapshot = await get(peanutRef);
         
         if (snapshot.exists()) {
             
@@ -244,14 +248,18 @@ export async function listPeanuts(user, db) {
                 // Decrypt data with user private key
                 let decryptedPeanut = decryptStringWithPrivateKey(user.privateKey, peanut.val().data);
                 
-                peanutList.push({
-                    data:  decryptedPeanut,
-                    timestamp: peanut.val().timestamp,
-                    email: peanut.val().userEmail,
-                    userId: peanut.val().uid,
-                    category: peanut.val().category,
-                    databaseRef: peanut.ref
-                    });
+                if (peanut.val().category == filterCategory || filterCategory == "all:all")
+                {
+                    peanutList.push({
+                        data:  decryptedPeanut,
+                        timestamp: peanut.val().timestamp,
+                        email: peanut.val().userEmail,
+                        userId: peanut.val().uid,
+                        category: peanut.val().category,
+                        databaseRef: peanut.ref
+                        });
+                }
+
             });
 
             // Reverse the loaded array to have the latest items first
@@ -261,371 +269,150 @@ export async function listPeanuts(user, db) {
 
             // Enable pagination of the loaded list
             let listLength = peanutList.length;
-            const maxItemsPerPage = MAX_ITEMS_PER_PAGE;
             let currentPage = 0;
 
             // Clack JS compatible prompt list
             let promptList;
             let answer_action;
                 
-            while (true) {
+            
 
-                promptList = [];
-                answer_action = null;
+            promptList = [];
+            answer_action = null;
 
-                // show current page items, pagination system
+            // show current page items, pagination system
 
-                // while not on the last page, the item_length is maxItemsPerPage - 1
-                // else the items_length is the rest of the list
-                let items_length = (currentPage < Math.floor(listLength / maxItemsPerPage)) ? 
-                                maxItemsPerPage : listLength - (currentPage * maxItemsPerPage);
+            // while not on the last page, the item_length is maxItemsPerPage - 1
+            // else the items_length is the rest of the list
+            let items_length = (currentPage < Math.floor(listLength / MAX_ITEMS_PER_PAGE)) ? 
+                        MAX_ITEMS_PER_PAGE : listLength - (currentPage * MAX_ITEMS_PER_PAGE);
 
-                
-                // loop and fill the page items from the loaded list
-                for (let    i = 0 + (currentPage * maxItemsPerPage); 
-                            i < items_length+ (currentPage * maxItemsPerPage); i++) {
+            
+            // loop and fill the page items from the loaded list
+            for (let    i = 0 + (currentPage * MAX_ITEMS_PER_PAGE); 
+                        i < items_length+ (currentPage * MAX_ITEMS_PER_PAGE); i++) {
 
-                    let peanut = peanutList[i];
+                let peanut = peanutList[i];
 
-                    // Show user email if the peanut is shared by another user
-                    // Don't show the email if it is the user's peanut
+                // Show user email if the peanut is shared by another user
+                // Don't show the email if it is the user's peanut
 
-                    let email_label = "\t\t" +( (peanut.email != user.email) ? ` (${peanut.email})` : '');
-                    let category_label = "\t\t" + ((peanut.category != 'default') ? ` #${peanut.category}` : '');
+                let email_label = "\t\t" +( (peanut.email != user.email) ? ` (${peanut.email})` : '');
+                let category_label = "\t\t" + ((peanut.category != 'default') ? ` #${peanut.category}` : '');
 
-                    let formattedLabel = peanut.data + color.cyan(email_label) + color.white(color.bgGreen(category_label));
+                let formattedLabel = peanut.data + color.cyan(email_label) + color.black(color.bgGreen(category_label));
 
-                    promptList.push({ 
-                        label: formattedLabel , 
-                        value: "DAT:"+ `${i}:` + peanut.data, // prepend value type, and the index for the metadata
-                    }); 
-                };
+                promptList.push({ 
+                    label: formattedLabel , 
+                    value: "DAT:"+ `${i}:` + peanut.data, // prepend value type, and the index for the metadata
+                }); 
+            };
 
-                // if not on the last page show next button
-                if (currentPage < Math.floor(listLength / maxItemsPerPage)) {
-                    promptList.push({ 
-                        label: color.cyan('Next Page'), 
-                        value: "NXT:" + "Next",
-    
-                    }); 
-                    promptList.push({ 
-                        label: color.green('By Category'), 
-                        value: "CAT:" + "Category",
-                    });
-                    promptList.push({ 
-                        label: color.yellow('Cancel'), 
-                        value: "END:" + "Cancel",
-                    });
-                } else {
-                    promptList.push({ 
-                        label: color.green('By Category'), 
-                        value: "CAT:" + "Category",
-                    });
-                    promptList.push({ 
-                        label: color.yellow('Cancel'), 
-                        value: "END:" + "Cancel",
-                    });
-                }
+            // if not on the last page show next button
+            if (currentPage < Math.floor(listLength / MAX_ITEMS_PER_PAGE)) {
+                promptList.push({ 
+                    label: color.cyan('Next Page'), 
+                    value: "NXT:" + "Next",
 
-
-                // Clack JS prompt, show a list of all peanuts to select from, sorted by latest
-                let answer_peanut = await prompts.select({
-                    message: 'Select a peanut',
-                    options: promptList
+                }); 
+                promptList.push({ 
+                    label: color.green('List by Category'), 
+                    value: "CAT:" + "Category",
                 });
+                promptList.push({ 
+                    label: color.yellow('Cancel'), 
+                    value: "END:" + "Cancel",
+                });
+            } else {
+                promptList.push({ 
+                    label: color.green('List by Category'), 
+                    value: "CAT:" + "Category",
+                });
+                promptList.push({ 
+                    label: color.yellow('Cancel'), 
+                    value: "END:" + "Cancel",
+                });
+            }
 
-                if (prompts.isCancel(answer_peanut)) {
+
+            // Clack JS prompt, show a list of all peanuts to select from, sorted by latest
+            let answer_peanut = await prompts.select({
+                message: 'Select a peanut',
+                options: promptList
+            });
+
+            if (prompts.isCancel(answer_peanut)) {
+                console.log(color.yellow("Cancelled"));
+                process.exit(0);
+            }
+
+            // If this is a data, act on it
+            if (answer_peanut.substring(0, 4) == "DAT:") {
+
+                // remove the first 4 control chars and keep the rest
+                answer_peanut = answer_peanut.slice(4);
+
+                // extract the index and the data from the answer
+                let [metaDataIndex, str] = answer_peanut.split(':');
+                str = answer_peanut.substring(answer_peanut.indexOf(':') + 1);
+
+                answer_peanut = str;
+                
+                // Clack JS prompt, select an action on the peanut
+                answer_action = await prompts.select({
+                    message: 'Action',
+                    options: [  {value: 'clipboard' , label: 'Clipboard'}, 
+                                {value: 'print' , label: 'Print'},
+                                {value: 'share' , label: color.blue('Share with user')},
+                                {value: 'category' , label: color.blue('Change category')},
+                                {value: 'ai' , label: color.cyan('Ask AI to explain')},
+                                {value: 'execute' , label: color.cyan('# Execute/Open #')},
+                                {value: 'cancel' , label: color.yellow('Cancel')},
+                                {value: 'delete' , label: color.red('# Delete #')},
+                             ]
+                    });
+
+                if (prompts.isCancel(answer_action)) {
                     console.log(color.yellow("Cancelled"));
                     process.exit(0);
                 }
 
-                // If this is a data, act on it
-                if (answer_peanut.substring(0, 4) == "DAT:") {
- 
-                    // remove the first 4 control chars and keep the rest
-                    answer_peanut = answer_peanut.slice(4);
+                // Excute logic of selected action
+                switch (answer_action) {
 
-                    // extract the index and the data from the answer
-                    let [metaDataIndex, str] = answer_peanut.split(':');
-                    str = answer_peanut.substring(answer_peanut.indexOf(':') + 1);
+                    case 'ai':
 
-                    answer_peanut = str;
-                    
-                    
-                    // Clack JS prompt, select an action on the peanut
-                    answer_action = await prompts.select({
-                        message: 'Action',
-                        options: [  {value: 'clipboard' , label: 'Clipboard'}, 
-                                    {value: 'print' , label: 'Print'},
-                                    {value: 'share' , label: color.blue('Share with user')},
-                                    {value: 'category' , label: color.blue('Change category')},
-                                    {value: 'ai' , label: color.cyan('Ask AI to explain')},
-                                    {value: 'cancel' , label: color.yellow('Cancel')},
-                                    {value: 'delete' , label: color.red('# Delete #')},
-                                    {value: 'execute' , label: color.cyan('# Execute/Open #')}, ]
-                        });
-
-                    if (prompts.isCancel(answer_action)) {
-                        console.log(color.yellow("Cancelled"));
-                        process.exit(0);
-                    }
-
-                    // Excute logic of selected action
-                    switch (answer_action) {
-
-                        case 'ai':
-
-                        const hiddenFolderPath = path.join(os.homedir(), '.peanuts');
-                        const AIConfFilePath = path.join(hiddenFolderPath, 'ai.json');
-                    
-                        if (fs.existsSync(AIConfFilePath)) {
-
-                            try {
-                                const AIConfFile = fs.readFileSync(AIConfFilePath, 'utf8');
-                                const AIConf = JSON.parse(AIConfFile);
-
-                                var geminiResponse = await generateGeminiAnswers(answer_peanut, AIConf.apiKey, "explain");
-
-                                console.log("");
-                                console.log(color.green(geminiResponse));
-                                console.log("");                               
-                                process.exit(0);
-
-                            } catch(error) {
-                                console.log(`${color.red('Error Loading AI Configuration:')} ${error}`);
-                                process.exit(1);
-                            }
-                        }
-                        else {
-                            console.log(color.yellow(`AI configuration not found. One is needed to infer commands. Add one with pnut ai`));
-                            process.exit(0)
-                        }
-                        process.exit(0)
-                        break;
-
-                        // Chance current text peanut category
-                        case 'category':
-
-                            // load categories
-                            const categoryRef = ref(db, `users/${firebase_email}/private/categories`);
-                            let categoriesList = [];
-                            let categories = [];
-
-                            const categorySnapshot = await get(categoryRef);
-
-                            try { 
-                                if (categorySnapshot.exists()) {
-                                    let index = 0;
-                                    categorySnapshot.forEach(element => {
-                                        categories.push({
-                                            name: element.val().name,
-                                            databaseRef: element.ref
-                                        });
-                                        categoriesList.push({label: element.val().name, value: `${index}:` + element.val().name});
-                                        index++;
-                                    });
-                        
-                                } else 
-                                categoriesList = []; 
-                            } catch(error) {
-                                console.log(`${color.red('Error Loading Categories:')} ${error}`);
-                                process.exit(1);
-                            }
-                            categoriesList.reverse(); // latest first
-
-                            categoriesList.push({label: color.yellow('default'), value: '0:default'});
-
-                            let answer_category = await prompts.select({
-                                message: 'Select a category',
-                                options: categoriesList
-                            });
-
-                            if (prompts.isCancel(answer_category)) {
-                                console.log(color.yellow("Cancelled"));
-                                process.exit(0);
-                            }
-
-                            let [category_index, category_name] = answer_category.split(':');
-                            category_name = answer_category.substring(answer_category.indexOf(':') + 1);
-
-                            // update the category for the selected text peanut item
-
-                            await update(peanutList[metaDataIndex].databaseRef, { category: category_name });
-
-                            console.log(`${color.green('Category Updated:')} ${category_name}`);
-                            process.exit(0);
-                            break;
-
-                        // User cancelled action
-                        case 'cancel':
-                            console.log(`${color.cyan('\nCancelled..')}\n`);
-                            process.exit(0);
-                            break;
-
-                        // Share selected peanut with another user
-                        // by copying it to their public/pending-texts node path
-                        case 'share':
-                            const contactsRef = ref(db, `users/${firebase_email}/private/contacts`);
-                            let snapshot = await get(contactsRef);
-
-                            try {
-                                if (snapshot.exists()) {
-                                    const propArray = Object.keys(snapshot.val());
-                                    let promptList = [];
-
-                                    propArray.forEach((prop) => {
-                                        promptList.push({ label: prop.replace(/\_/g, '.'), value: prop });
-                                    })
-                                    // sort promptList alphabetically
-                                    promptList.sort((a, b) => a.label.localeCompare(b.label));
-
-                                    promptList.push({ label: `${color.yellow('Cancel')}`, value: "cancel" });
-
-                                    let answer_user = await prompts.select({
-                                        message: 'Select a User',
-                                        options: promptList
-                                    });
-
-                                    if (prompts.isCancel(answer_user)) {
-                                        console.log(color.yellow("Cancelled"));
-                                        process.exit(0);
-                                    }
-
-                                    if (answer_user == 'cancel') {
-                                        console.log(`${color.cyan('\nCancelled..')}\n`);
-                                        process.exit(0);
-                                    }
-
-                                    // get the user's publicKey property under users/${answer_user}/public
-                                    const publicKeyRef = ref(db, `users/${answer_user}/public/publicKey`);
-                                    snapshot = await get(publicKeyRef);
-
-                                    if (snapshot.exists()) {
-                                        let publicKey = snapshot.val();
-
-                                        // Copy selected item to user's pending-texts
-                                        // and encrypt it with the user's public key
-                                        await push(ref(db, `users/${answer_user}/public/pending-text/`), {
-                                            data: encryptStringWithPublicKey(publicKey, answer_peanut),
-                                            timestamp: serverTimestamp(),
-                                            email: userEmail.replace(/\_/g, '.'),
-                                            userId: user.uid,
-                                        });
-                                        console.log(`\n${color.green('\nSuccess:')} Shared with user\n`);
-                                        process.exit(0);
-                                    }
-                                    else {
-                                        console.log(`${color.red('Error:')} No User found`);
-                                        process.exit(1);
-                                    }     
-                                }
-                                else {
-                                    console.log(`${color.red('Error:')} No User found`);
-                                    process.exit(0);
-                                }
-                            } catch (error) {
-                                console.error(color.red('Error:'), error);
-                                process.exit(0);
-                            }
-
-
-                            process.exit(0);
-                            break;
-
-                        // Copy selected peanut to clipboard
-                        case 'clipboard':
-                            console.log(`${color.cyan('\nCopied to clipboard..')}\n`);
-                            clipboard.writeSync(answer_peanut);
-                            console.log('\n');
-                            process.exit(0);
-                            break;
-
-                        // Delete item from firebase
-                        case 'delete':
-                            console.log(`${color.cyan('\nDeleting..')}\n`);
-
-                            // Confirmation prompt for deletion
-                            const shouldDelete = await prompts.confirm({
-                                message: 'Are you Sure?',
-                            })
-
-                            if (prompts.isCancel(shouldDelete)) {
-                                console.log(color.yellow("Cancelled"));
-                                process.exit(0);
-                            }
-
-                            if (shouldDelete) {
-                                // Delete item from firebase
-                                try {
-                                    await remove(peanutList[metaDataIndex].databaseRef);
-                                    console.log(`${color.cyan('\nDeleted..')}\n`);
-                                    process.exit(0);
-                                } catch (error) {
-                                    console.error(error);
-                                    process.exit(0);
-                                }
-                            } else {
-                                console.log(`${color.cyan('\nCancelled..')}\n`);
-                                process.exit(0);
-                            }
-
-                        // Execute selected peanut in the terminal
-                        case 'execute':
-                            console.log(`${color.cyan('\nExecuting..')}\n`);
-
-                            // Confirmation prompt for execution
-                            const shouldContinue = await prompts.confirm({
-                                message: 'Are you Sure?',
-                            });
-
-                            if (prompts.isCancel(shouldContinue)) {
-                                console.log(color.yellow("Cancelled"));
-                                process.exit(0);
-                            }
-                            
-                            if (shouldContinue) {
-                                // run selected peanut text in the terminal and display output
-                                try {
-                                    
-                                    // detect if string_input is a web link and open in browser
-                                    if (answer_peanut.startsWith("https://") || answer_peanut.startsWith("http://")) {
-                                        console.log("Opening in browser...");
-                                        open(answer_peanut);  
-                                    }
-                                    else {
-                                        // if not try to execute in terminal
-                                        console.log("Executing in terminal...");
-                                        const output = execSync(answer_peanut, { encoding: 'utf-8' });
-                                        console.log(`${color.cyan('\nExecuted..')}\n`);
-                                        console.log(output);
-                                    }
-
-                                    process.exit(0);
-                                } catch (error) {
-                                    console.error(error);
-                                    process.exit(0);
-                                }
-                            } else {
-                                console.log(`${color.cyan('\nCancelled..')}\n`);
-                                process.exit(0);
-                            }
-                            break;
-
-                        // Print selected peanut to the
-                        case 'print':
-                            console.log(`${color.cyan('\nPrinted..')}\n`);
-                            console.log(answer_peanut);
-                            console.log('\n');
-                            process.exit(0);
-                            break;
-                        default:
-                            console.log(`Unsupported action: ${answer_action}`);
-                            process.exit(0);
-                    }
-                }
-                // View by category
-                else if (answer_peanut.substring(0, 4) == "CAT:") {
+                    const hiddenFolderPath = path.join(os.homedir(), '.peanuts');
+                    const AIConfFilePath = path.join(hiddenFolderPath, 'ai.json');
                 
+                    if (fs.existsSync(AIConfFilePath)) {
+
+                        try {
+                            const AIConfFile = fs.readFileSync(AIConfFilePath, 'utf8');
+                            const AIConf = JSON.parse(AIConfFile);
+
+                            var geminiResponse = await generateGeminiAnswers(answer_peanut, AIConf.apiKey, "explain");
+
+                            console.log("");
+                            console.log(color.green(geminiResponse));
+                            console.log("");                               
+                            continue;
+
+                        } catch(error) {
+                            console.log(`${color.red('Error Loading AI Configuration:')} ${error}`);
+                            process.exit(1);
+                        }
+                    }
+                    else {
+                        console.log(color.yellow(`AI configuration not found. One is needed to infer commands. Add one with pnut ai`));
+                        continue;
+                    }
+                    process.exit(0)
+                    break;
+
+                    // Chance current text peanut category
+                    case 'category':
+
                         // load categories
                         const categoryRef = ref(db, `users/${firebase_email}/private/categories`);
                         let categoriesList = [];
@@ -641,10 +428,10 @@ export async function listPeanuts(user, db) {
                                         name: element.val().name,
                                         databaseRef: element.ref
                                     });
-                                    categoriesList.push({label: element.val().name, value: `DAT:${index}:` + element.val().name});
+                                    categoriesList.push({label: element.val().name, value: `${index}:` + element.val().name});
                                     index++;
                                 });
-
+                    
                             } else 
                             categoriesList = []; 
                         } catch(error) {
@@ -653,7 +440,7 @@ export async function listPeanuts(user, db) {
                         }
                         categoriesList.reverse(); // latest first
 
-                        categoriesList.push({label: `${color.cyan('All')}`, value: "ALL:ALL"});
+                        categoriesList.push({label: color.yellow('default'), value: '0:default'});
 
                         let answer_category = await prompts.select({
                             message: 'Select a category',
@@ -662,49 +449,258 @@ export async function listPeanuts(user, db) {
 
                         if (prompts.isCancel(answer_category)) {
                             console.log(color.yellow("Cancelled"));
+                            continue;
+                        }
+
+                        let [category_index, category_name] = answer_category.split(':');
+                        category_name = answer_category.substring(answer_category.indexOf(':') + 1);
+
+                        // update the category for the selected text peanut item
+
+                        await update(peanutList[metaDataIndex].databaseRef, { category: category_name });
+
+                        console.log(`${color.green('Category Updated:')} ${category_name}`);
+                        continue;
+                        break;
+
+                    // User cancelled action
+                    case 'cancel':
+                        console.log(`${color.yellow('Cancelled')}\n`);
+                        continue;
+                        break;
+
+                    // Share selected peanut with another user
+                    // by copying it to their public/pending-texts node path
+                    case 'share':
+                        const contactsRef = ref(db, `users/${firebase_email}/private/contacts`);
+                        let snapshot = await get(contactsRef);
+
+                        try {
+                            if (snapshot.exists()) {
+                                const propArray = Object.keys(snapshot.val());
+                                let promptList = [];
+
+                                propArray.forEach((prop) => {
+                                    promptList.push({ label: prop.replace(/\_/g, '.'), value: prop });
+                                })
+                                // sort promptList alphabetically
+                                promptList.sort((a, b) => a.label.localeCompare(b.label));
+
+                                promptList.push({ label: `${color.yellow('Cancel')}`, value: "cancel" });
+
+                                let answer_user = await prompts.select({
+                                    message: 'Select a User',
+                                    options: promptList
+                                });
+
+                                if (prompts.isCancel(answer_user)) {
+                                    console.log(color.yellow("Cancelled"));
+                                    continue;
+                                }
+
+                                if (answer_user == 'cancel') {
+                                    console.log(`${color.cyan('Cancelled')}\n`);
+                                    continue;
+                                }
+
+                                // get the user's publicKey property under users/${answer_user}/public
+                                const publicKeyRef = ref(db, `users/${answer_user}/public/publicKey`);
+                                snapshot = await get(publicKeyRef);
+
+                                if (snapshot.exists()) {
+                                    let publicKey = snapshot.val();
+
+                                    // Copy selected item to user's pending-texts
+                                    // and encrypt it with the user's public key
+                                    await push(ref(db, `users/${answer_user}/public/pending-text/`), {
+                                        data: encryptStringWithPublicKey(publicKey, answer_peanut),
+                                        timestamp: serverTimestamp(),
+                                        email: userEmail.replace(/\_/g, '.'),
+                                        userId: user.uid,
+                                    });
+                                    console.log(`\n${color.green('\nSuccess:')} Shared with user\n`);
+                                    continue;
+                                }
+                                else {
+                                    console.log(`${color.red('Error:')} No active user account found online with email ${userEmail}`);
+                                    continue;
+                                }     
+                            }
+                            else {
+                                console.log(`${color.red('Error:')} No active user account found online with email ${userEmail}`);
+                                process.exit(0);
+                            }
+                        } catch (error) {
+                            console.error(color.red('Error:'), error);
+                            process.exit(0);
+                        }
+                        process.exit(0);
+                        break;
+
+                    // Copy selected peanut to clipboard
+                    case 'clipboard':
+                        console.log(`${color.cyan('\nCopied to clipboard, exiting to terminal..')}\n`);
+                        clipboard.writeSync(answer_peanut);
+                        console.log('\n');
+                        process.exit(0);
+                        break;
+
+                    // Delete item from firebase
+                    case 'delete':
+                        console.log(`${color.cyan('\nDeleting..')}\n`);
+
+                        // Confirmation prompt for deletion
+                        const shouldDelete = await prompts.confirm({
+                            message: 'Are you Sure?',
+                        })
+
+                        if (prompts.isCancel(shouldDelete)) {
+                            console.log(color.yellow("Cancelled"));
                             process.exit(0);
                         }
 
-                        // Check if they selected a category or default ALL
-                        if (answer_category.substring(0,4) == "ALL:") {
-                            currentPage = 0;
-                            peanutList = peanutListBackup.slice();
-                            listLength = peanutList.length;
+                        if (shouldDelete) {
+                            // Delete item from firebase
+                            try {
+                                await remove(peanutList[metaDataIndex].databaseRef);
+                                console.log(`${color.cyan('\nDeleted..')}\n`);
+                                continue;
+                            } catch (error) {
+                                console.error(error);
+                                process.exit(0);
+                            }
                         } else {
-
-                            answer_category = answer_category.slice(4);
-                            let [category_index, category_name] = answer_category.split(':');
-                            category_name = answer_category.substring(answer_category.indexOf(':') + 1);
-    
-                            // reset current page and reload only the selected category of text peanuts
-                            currentPage = 0;
-                            peanutList = [];
-    
-                            peanutListBackup.forEach(element => {
-                                if (element.category == category_name) {
-                                    peanutList.push(element);
-                                }
-                            })    
-                            listLength = peanutList.length;              
+                            console.log(`${color.cyan('Cancelled')}\n`);
+                            continue;
                         }
-                }
-                // If this is a next control, act on it
-                else if (answer_peanut.substring(0, 4) == "NXT:") {
-                    currentPage++;
-                }
-                else if (answer_peanut.substring(0, 4) == "END:") {
-                    console.log(`${color.cyan('Cancelled.')}`);
-                    process.exit(0);
+
+                    // Execute selected peanut in the terminal
+                    case 'execute':
+                        console.log(`${color.cyan('\nExecuting..')}\n`);
+
+                        // Confirmation prompt for execution
+                        const shouldContinue = await prompts.confirm({
+                            message: 'Are you Sure?',
+                        });
+
+                        if (prompts.isCancel(shouldContinue)) {
+                            console.log(color.yellow("Cancelled"));
+                            process.exit(0);
+                        }
+                        
+                        if (shouldContinue) {
+                            // run selected peanut text in the terminal and display output
+                            try {
+                                
+                                // detect if string_input is a web link and open in browser
+                                if (answer_peanut.startsWith("https://") || answer_peanut.startsWith("http://")) {
+                                    console.log("Opening in browser...");
+                                    open(answer_peanut);  
+                                }
+                                else {
+                                    // if not try to execute in terminal
+                                    console.log("Executing in terminal...");
+                                    const output = execSync(answer_peanut, { encoding: 'utf-8' });
+                                    console.log(`${color.cyan('\nExecuted..')}\n`);
+                                    console.log(output);
+                                }
+
+                                process.exit(0);
+                            } catch (error) {
+                                console.error(error);
+                                process.exit(0);
+                            }
+                        } else {
+                            console.log(`${color.yellow('Cancelled')}\n`);
+                            process.exit(0);
+                        }
+                        break;
+
+                    // Print selected peanut to the
+                    case 'print':
+                        console.log(`${color.cyan('\nPrinting to terminal..')}\n`);
+                        console.log(answer_peanut);
+                        console.log('\n');
+                        process.exit(0);
+                        break;
+                    default:
+                        console.log(`Unsupported action: ${answer_action}`);
+                        process.exit(0);
                 }
             }
+            // View by category
+            else if (answer_peanut.substring(0, 4) == "CAT:") {
+            
+                    // load categories
+                    const categoryRef = ref(db, `users/${firebase_email}/private/categories`);
+                    let categoriesList = [];
+                    let categories = [];
 
-            process.exit(0);
+                    const categorySnapshot = await get(categoryRef);
+
+                    try { 
+                        if (categorySnapshot.exists()) {
+                            let index = 0;
+                            categorySnapshot.forEach(element => {
+                                categories.push({
+                                    name: element.val().name,
+                                    databaseRef: element.ref
+                                });
+                                categoriesList.push({label: element.val().name, value: `DAT:${index}:` + element.val().name});
+                                index++;
+                            });
+
+                        } else 
+                        categoriesList = []; 
+                    } catch(error) {
+                        console.log(`${color.red('Error Loading Categories:')} ${error}`);
+                        process.exit(1);
+                    }
+                    categoriesList.reverse(); // latest first
+
+                    categoriesList.push({label: `${color.cyan('All')}`, value: "ALL:ALL"});
+
+                    let answer_category = await prompts.select({
+                        message: 'Select a category',
+                        options: categoriesList
+                    });
+
+                    if (prompts.isCancel(answer_category)) {
+                        console.log(color.yellow("Cancelled"));
+                        continue;
+                    }
+
+                    // Check if they selected a category or default ALL
+                    if (answer_category.substring(0,4) == "ALL:") {
+                        currentPage = 0;
+                        filterCategory = "all:all";
+
+                    } else {
+
+                        answer_category = answer_category.slice(4);
+                        let [category_index, category_name] = answer_category.split(':');
+                        category_name = answer_category.substring(answer_category.indexOf(':') + 1);
+
+                        filterCategory = category_name;
+                        currentPage = 0;
+                    }
+            }
+            // If this is a next control, act on it
+            else if (answer_peanut.substring(0, 4) == "NXT:") {
+                currentPage++;
+            }
+            else if (answer_peanut.substring(0, 4) == "END:") {
+                console.log(`${color.yellow('Cancelled')}`);
+                process.exit(0);
+            }
+        
+
+            
         } else {
             console.log(`${color.cyan('No Peanuts Stashed.')}`);
             process.exit(1);
         }
-
-    })
+    }
 
 }
 

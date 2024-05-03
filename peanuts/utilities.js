@@ -27,33 +27,32 @@ import {  stashPeanut,
 
 // Show console help arguments
 export function showArgs() {
-    console.log(`\n${color.cyan('Peanut Stash 1.0.9')} - Collaborative command line cloud Stash, Share, Copy & Paste tool.\n`);
-    console.log("Quickly stash, pop, send & receive console commands and text with your coding, IT, devops teams\n")
+    console.log(`\n${color.cyan('Peanut Stash 1.0.10')} - Collaborative command line cloud Stash, Share, Copy & Paste tool.\n`);
+    console.log("Quickly stash, pop, send & receive console commands and text with your coding, IT, devops teams.\n")
     console.log(`${color.yellow("Arguments Usage:\n")}`);
   
     console.log(`register (r) <email>\t\t\t ${color.cyan('Register new account')}`);
-    console.log(`login (i) <email>\t\t\t ${color.cyan('Login')}`);
+    console.log(`login (i) <email>\t\t\t ${color.cyan('Login (REQUIRED)')}`);
     console.log(`logout (o) \t\t\t\t ${color.cyan('Logout')}`);
     console.log(`reset (rs)\t\t\t\t ${color.cyan('Reset password')}\n`);
+  
+    console.log(`stash (s)\t\t\t\t ${color.cyan('Stash terminal text peanut for reuse later')}`);
+    console.log(`pop (p) \t\t\t\t ${color.cyan('Pop stashed text peanut back to terminal')}`);
+    console.log(`list (l) \t\t\t\t ${color.cyan('Manage stashed peanuts (run/clipboard/print/label/ai)')}`);
+    console.log(`askGemini (ai) \t\t\t\t ${color.cyan('Infer command lines using Gemini v1 API Key')}\n`);
 
-    console.log(`users (u) \t\t\t\t ${color.cyan('Manage all connected users')}\n`);
+    console.log(`users (u) \t\t\t\t ${color.cyan('Manage connected users to share with')}\n`);
 
-    console.log(`categories (c) \t\t\t\t ${color.cyan('Manage categories')}\n`);
+    console.log(`categories (c) \t\t\t\t ${color.cyan('Manage label categories')}\n`);
   
     console.log(`server (sv) \t\t\t\t ${color.cyan('Use default or custom firebase server (web app creds)\n')}`);
-  
-    console.log(`stash (s)\t\t\t\t ${color.cyan('Stash a text peanut')}`);
-    console.log(`pop (p) \t\t\t\t ${color.cyan('Pop stashed text. Asks to display, copy or exec')}`);
-    console.log(`list (l) \t\t\t\t ${color.cyan('Manage all stashed peanuts')}\n`);
-
-    console.log(`askGemini (ai) \t\t\t\t ${color.cyan('Infer command lines using Gemini v1 API Key')}\n`);
 
     console.log(`about (a) \t\t\t\t ${color.cyan('About Page\n')}`);
   
     console.log(`${color.yellow("Examples:\n")}`);
     console.log(`pnut stash ${color.cyan('or')} pnut s `);
-    console.log(`pnut list`);
-    console.log(`pnut pop`);
+    console.log(`pnut list ${color.cyan('or')} pnut l`);
+    console.log(`pnut pop ${color.cyan('or')} pnut p `);
   
     console.log('\n');
   }
@@ -150,7 +149,7 @@ export function stateMachine(db, auth, user, action, args) {
 
       case "about":
       case "a":
-        console.log(figlet.textSync("Peanut Stash 1.0.9", { horizontalLayout: "full" }));
+        console.log(figlet.textSync("Peanut Stash 1.0.10", { horizontalLayout: "full" }));
         console.log(`Quickly stash, pop, send & receive console commands and text with your team.\nHelpful tiny tool for coders, IT and devops who work frequently within the terminal.\n\nUnlike pastebin and its 3rd party tools/ecosystem, this tool and project is more focused on quick efficient terminal commands stashing/sharing and not on code sharing.\nhttps://www.npmjs.com/package/peanut-stash`);
         process.exit(0);
         break;
@@ -198,7 +197,7 @@ export function stateMachine(db, auth, user, action, args) {
         
       default:
         showArgs()
-        console.log(`${color.red('Error:')} User not signed in\n`);
+        console.log(`${color.red('Warning:')} User not signed in. An account is required.\n`);
         process.exit(0);
         break;
     
@@ -328,118 +327,120 @@ async function manageCategories(user, db){
 
     // load categories we can use to stash under
     const categoryRef = ref(db, `users/${firebase_email}/private/categories`);
-        
-    let categoriesList = []; // for display initially
-    let categories = []; // to save extra data such as db ref to be able to delete
 
-    const snapshot = await get(categoryRef);
+    while(true) {
+      let categoriesList = []; // for display initially
+      let categories = []; // to save extra data such as db ref to be able to delete
 
-    try { 
-        if (snapshot.exists()) {
-            let index = 0;
-            snapshot.forEach(element => {
-                categories.push({
-                    name: element.val().name,
-                    databaseRef: element.ref
-                });
-                categoriesList.push({label: element.val().name, value: `DAT:${index}:` + element.val().name});
-                index++;
-            });
+      const snapshot = await get(categoryRef);
 
-        } else 
-        categoriesList = []; 
-    } catch(error) {
-        console.log(`${color.red('Error Loading Categories:')} ${error}`);
-        process.exit(1);
-    }
-    categoriesList.reverse(); // latest first
+      try { 
+          if (snapshot.exists()) {
+              let index = 0;
+              snapshot.forEach(element => {
+                  categories.push({
+                      name: element.val().name,
+                      databaseRef: element.ref
+                  });
+                  categoriesList.push({label: element.val().name, value: `DAT:${index}:` + element.val().name});
+                  index++;
+              });
 
-    categoriesList.push({label: color.cyan("#Add#"), value: "ADD:add"}); //bottom
-    categoriesList.push({label: color.yellow("Cancel"), value: "CNL:cancel"}); //bottom
-
-    let answer_category = await prompts.select({
-      message: 'Select a category',
-      options: categoriesList
-    });
-
-    if (prompts.isCancel(answer_category)) {
-      console.log(color.yellow("Cancelled"));
-      process.exit(0);
-    }
-
-    if (answer_category.substring(0, 4) == "CNL:") {
-
-      console.log(`${color.green('Cancelled action.')}`);
-      process.exit(0);
-    }
-    else if (answer_category.substring(0, 4) == "ADD:") {
-
-      try {
-        var answer = await read({prompt: `${color.cyan('\Add a new category:\n')} `});
-        if (answer.length == 0)
-        {
-            console.log(`${color.yellow("Error: Empty text")}`);
-            process.exit(0);
-        }
+          } else 
+          categoriesList = []; 
       } catch(error) {
-          console.log(`${color.yellow(error)}`);
-          process.exit(0);
+          console.log(`${color.red('Error Loading Categories:')} ${error}`);
+          process.exit(1);
       }
-      
-      // save it to database
-      await push(categoryRef,{ name : answer });
+      categoriesList.reverse(); // latest first
 
-      console.log(`${color.green('Success: Category added')}`);
-      process.exit(0);
-    } 
-    else if (answer_category.substring(0, 4) == "DAT:") {
+      categoriesList.push({label: color.cyan("Add"), value: "ADD:add"}); //bottom
+      categoriesList.push({label: color.yellow("Cancel"), value: "CNL:cancel"}); //bottom
 
-      let manage_action = await prompts.select({
-        message: 'Select Action',
-        options: [
-            {label: color.yellow("Cancel"), value: "cancel"},
-            {label: `${color.red("#Delete Category#")}`, value: "delete"},
-        ]
+      let answer_category = await prompts.select({
+        message: 'Select a category label',
+        options: categoriesList
       });
 
-      if (prompts.isCancel(manage_action)) {
+      if (prompts.isCancel(answer_category)) {
         console.log(color.yellow("Cancelled"));
         process.exit(0);
       }
 
-      if (manage_action == "cancel") {
-        console.log(`${color.green('Cancelled action.')}`);
+      if (answer_category.substring(0, 4) == "CNL:") {
+
+        console.log(`${color.yellow('Cancelled')}`);
         process.exit(0);
       }
-      else if (manage_action == "delete") {
+      else if (answer_category.substring(0, 4) == "ADD:") {
 
-            const shouldDelete = await prompts.confirm({
-              message: 'Are you Sure?',
-            });
+        try {
+          var answer = await read({prompt: `${color.cyan('\Add a new category:\n')} `});
+          if (answer.length == 0)
+          {
+              console.log(`${color.yellow("Error: Empty text")}`);
+              continue;
+          }
+        } catch(error) {
+            console.log(`${color.yellow("Cancelled")}`);
+            process.exit(0);
+        }
+        
+        // save it to database
+        await push(categoryRef,{ name : answer });
 
-            if (prompts.isCancel(shouldDelete)) {
-              console.log(color.yellow("Cancelled"));
-              process.exit(0);
-            }
+        console.log(`${color.green('Success: Category added')}`);
+        continue;
+      } 
+      else if (answer_category.substring(0, 4) == "DAT:") {
 
-            if (shouldDelete) {
-              // select and remove prefix
-              answer_category = answer_category.slice(4);
-              // get database ref to remove
-              let [metaDataIndex, category] = answer_category.split(':');
-              category = answer_category.substring(answer_category.indexOf(':') + 1);
-              await remove(categories[metaDataIndex].databaseRef);
-              
-              console.log(`${color.green('Success: Category deleted. Existing peanut stash not affected. Re-categorize them.')}`);
-              process.exit(0);
-            } else {
-              console.log(`${color.green('Cancelled action.')}`);
-              process.exit(0);
-            }
-      }    
-      process.exit(0); // code should not reach here (inreccorrect usage)
+        let manage_action = await prompts.select({
+          message: 'Select Action',
+          options: [
+              {label: color.yellow("Cancel"), value: "cancel"},
+              {label: `${color.red("# Delete #")}`, value: "delete"},
+          ]
+        });
+
+        if (prompts.isCancel(manage_action)) {
+          console.log(color.yellow("Cancelled"));
+          process.exit(0);
+        }
+
+        if (manage_action == "cancel") {
+          console.log(`${color.green('Cancelled')}`);
+          continue;
+        }
+        else if (manage_action == "delete") {
+
+              const shouldDelete = await prompts.confirm({
+                message: 'Are you Sure?',
+              });
+
+              if (prompts.isCancel(shouldDelete)) {
+                console.log(color.yellow("Cancelled"));
+                continue;
+              }
+
+              if (shouldDelete) {
+                // select and remove prefix
+                answer_category = answer_category.slice(4);
+                // get database ref to remove
+                let [metaDataIndex, category] = answer_category.split(':');
+                category = answer_category.substring(answer_category.indexOf(':') + 1);
+                await remove(categories[metaDataIndex].databaseRef);
+                
+                console.log(`${color.green('Success: Category deleted. Existing peanut labels in stash not affected. Re-categorize them.')}`);
+                continue;
+              } else {
+                console.log(`${color.yellow('Cancelled')}`);
+                continue;
+              }
+        }    
+        
+      }
     }
-    process.exit(0);
+    
 }
 
 // Ask AI(Gemini using API keys) to infer commands for you
@@ -523,7 +524,7 @@ async function askAI(user, db) {
         console.log(`${color.green('Success: gemini API key removed. Relogin with new key.')}`);
         process.exit(0);
       } else {
-        console.log(`${color.green('Cancelled action.')}`);
+        console.log(`${color.green('Cancelled')}`);
         process.exit(0);
       }
 

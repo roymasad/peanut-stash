@@ -1,4 +1,4 @@
-# Peanut Stash 1.0.9 
+# Peanut Stash 1.0.10 
 
 ### Description:
 Collaborative command line cloud Stash, Share, Copy & Paste tool.
@@ -40,21 +40,20 @@ pnut
 #### Arguments Usage:
 
 * register (r) <email>                     Register new account
-* login (i) <email>                        Login
+* login (i) <email>                        Login  (REQUIRED)
 * logout (o)                               Logout
 * reset (rs)                               Reset password
+  
+* stash (s)                                Stash terminal text peanut for reuse later
+* pop (p)                                  Pop stashed text peanut back to terminal
+* list (l)                                 Manage stashed peanuts (run/clipboard/print/label/ai)
+* askGemini (ai)                           Infer command lines using Gemini API (paid/free supported)
 
-* users (u)                                Manage all connected users
+* users (u)                                Manage connected users to share with
 
-* categories (c)                           Manage categories
+* categories (c)                           Manage label categories
 
 * server (sv)                              Use default or custom firebase server (web app creds)
-
-* stash (s)                                Stash a text peanut
-* pop (p)                                  Pop stashed text. Asks to display, copy or exec
-* list (l)                                 Use and manage all stashed peanuts
-
-* askGemini (ai)                           Infer command lines using Gemini API (paid/free supported)
 
 * about (a)                                About Page
 
@@ -66,9 +65,13 @@ pnut s
 (then type or paste your terminal text, ie : adb shell pm list packages -e) 
 
 pnut list
-(forward/use/delete)
+(or shorthand) 
+pnut l
+(forward/use/delete/copy/ai..)
 
 pnut pop
+(or shorthand) 
+pnut p
 (get the last stashed text peanut)
 
 ### Features:
@@ -114,7 +117,7 @@ Certain intentionally missing features like using custom access tokens to login 
 In this spirit, the app design is that of a purely client logic/architecture on the main branch which can access the realtime firebase database directly from the node app without going through API server endpoints or any paid features. (and the pros and cons that comes with this approach). Firebase admin sdk cannot be used in such a project since we arent using server modules and for security reasons can't use the admin sdk in an unsecure public client environment.
 
 
-# Roadmap for versions 1.0.9+:
+# Roadmap for versions 1.0.10+:
 
 * Add comments to text peanuts
 * Add unit testing
