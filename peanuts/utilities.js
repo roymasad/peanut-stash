@@ -8,6 +8,7 @@ import fs from 'fs';
 import path from 'path';
 import os from 'os';
 import {read} from 'read';
+import tty from 'tty';
 
 import {  ref, 
           push, 
@@ -39,7 +40,7 @@ export function showArgs() {
     console.log(`stash (s)\t\t\t\t ${color.cyan('Quickly stash terminal text peanuts 🥜 for reuse later')}`);
     console.log(`pop (p) \t\t\t\t ${color.cyan('Pop last stashed text peanut 🥜 back to terminal')}`);
     console.log(`list (l) \t\t\t\t ${color.cyan('Manage 🥜 stash (add/run/clipboard/print/label/ai/share)')}`);
-    console.log(`askGemini (ai) \t\t\t\t ${color.cyan('Infer command lines using Gemini v1 API Key')}\n`);
+    console.log(`gemini (ai) \t\t\t\t ${color.cyan('Setup/Infer commands with Gemini v1 API (paid/free)')}\n`);
 
     console.log(`users (u) \t\t\t\t ${color.cyan('Manage connected users to share with')}\n`);
 
@@ -271,6 +272,7 @@ async function manageServer(){
     } else if (answer_action == 'custom') {
       
         console.log("Enter your Firebase Web App Custom Project Keys");
+        console.log(color.yellow("https://console.firebase.google.com/"));
       
         try {
           var apiKey = await read({ prompt: `${color.cyan('apiKey:')} `});
@@ -533,7 +535,8 @@ async function askAI(user, db) {
     process.exit(0);
   }
   else {
-    console.log(color.yellow("AI configuration not found. One is needed to infer commands."));
+    console.log(color.cyan("AI configuration not found. One is needed to infer commands."));
+    console.log(color.yellow("https://ai.google.dev/pricing"));
     // Ask the user to input their gemini API key so we can save as json to AIConfFilePath
 
     try {
@@ -641,6 +644,17 @@ export async function generateGeminiAnswers(promptQuestion, apiKey, mode = "gene
   } catch (error) {
       console.error('AI Error:', error);
       process.exit(1)
+  }
+}
+
+export function getTerminalSize() {
+  // checks if the standard input stream has a file descriptor = connected to a terminal
+  if (tty.isatty(process.stdin.fd)) {
+      const { columns, rows } = process.stdout;
+      return { console_columns: columns, console_rows: rows };
+  } else {
+      console.error('Error: stty command cannot be executed in a non-interactive shell.');
+      return { columns: null, rows: null };
   }
 }
   

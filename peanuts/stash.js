@@ -34,6 +34,7 @@ import {MAX_ITEMS_PER_PAGE, MAX_PEANUT_TEXT_LENGTH} from './consts.js';
 import {  encryptStringWithPublicKey, 
     decryptStringWithPrivateKey, 
     generateGeminiAnswers,
+    getTerminalSize,
     fetchJsonAPI } from './utilities.js';
 
 // Save user's data text 'peanut' to his list/stash of peanuts
@@ -196,6 +197,8 @@ export async function listPeanuts(user, db) {
     const userEmail = user.email;
     const firebase_email = userEmail.replace(/\./g, '_');
 
+    const { console_columns, console_rows } = getTerminalSize();
+
     // before loading stashed peanuts
     // check if there are any pending shared peanut texts from other (approved) users
     // and make a copy of them in the stash with the category of "imported"
@@ -299,10 +302,37 @@ export async function listPeanuts(user, db) {
                 // Show user email if the peanut is shared by another user
                 // Don't show the email if it is the user's peanut
 
-                let email_label = "\t\t" +( (peanut.email != user.email) ? ` (${peanut.email})` : '');
-                let category_label = "\t\t" + ((peanut.category != 'default') ? ` #${peanut.category}` : '');
+                // add \t for padding
+                let email_label = "\t" +( (peanut.email != user.email) ? ` (${peanut.email})` : '');
+                let category_label = "\t" + ((peanut.category != 'default') ? ` #${peanut.category}` : '');
+                // technically category is capped at 32 in the database, but for display in the select menu
+                // we have to cap at shorter to fit things, so lets cap it at 20 and add ".." if it was longer
+                category_label = (category_label.length > 22) ? category_label.slice(0,19) + '..' : category_label;
 
-                let formattedLabel = peanut.data + color.cyan(email_label) + color.black(color.bgGreen(category_label));
+                //same for email, it can be up to 128 bytes, but let is cap it at 30 and add '..' if it was longer
+                email_label = (email_label.length > 30) ? email_label.slice(0,27) + '..' : email_label;
+
+                // we are going to process this to fit things per console width while showing 
+                // category labels, optional other user emails, and the actual text, truncating when neccessary
+                // PS after the user selects a text peanut will will show them the full details again
+                let formattedLabel = peanut.data ;
+
+                // PS: Clack npm has a problem with multiline support, there is a fix on a PR but it hasnt been merged
+                // https://github.com/natemoo-re/clack/pull/143
+                // So we can't have multi lines in the select prompt.
+                // And console width is dynamic per user/session/window, so we need to account for that
+                // Max length of formattedLabel is console_columns - space reserved for label + 
+                // optional email display of other user who shared a certain peanut text + the two \t used for padding. 
+                // plus the "..." if the truncated text was longer
+                // So we must truncate the txt so we dont have a multiline prompt that breaks clack npm.
+                // each tab is 8 characters, we got two so 16 characters for the 2 padding tabs
+                // and the ... of the truncated text. so around 20 extra characters to account for.
+                let max_allowed_length = console_columns - (20 + email_label.length + category_label.length);
+                if (formattedLabel.length > max_allowed_length) {
+                    formattedLabel = formattedLabel.substring(0, max_allowed_length-1) + color.magenta('...');
+                }
+
+                formattedLabel += color.cyan(email_label) + color.black(color.bgGreen(category_label));
 
                 promptList.push({ 
                     label: formattedLabel , 
@@ -351,7 +381,7 @@ export async function listPeanuts(user, db) {
                 label: color.yellow('Cancel'), 
                 value: "END:" + "Cancel",
             });
-
+            
             // Clack JS prompt, show a list of all peanuts to select from, sorted by latest
             let answer_peanut = await prompts.select({
                 message: 'Select a peanut',
@@ -374,6 +404,11 @@ export async function listPeanuts(user, db) {
                 str = answer_peanut.substring(answer_peanut.indexOf(':') + 1);
 
                 answer_peanut = str;
+
+                // show the selected command in full (it might have been truncated in the select above)
+                console.log(color.green("\n"+answer_peanut));
+                // print the full category label and optional user email 
+                console.log("\n"+color.bgGreen("#"+peanutList[metaDataIndex].category) + "\t\t" + ( (userEmail != peanutList[metaDataIndex].email) ? color.cyan(peanutList[metaDataIndex].email) : '') ); 
                 
                 // Clack JS prompt, select an action on the peanut
                 answer_action = await prompts.select({

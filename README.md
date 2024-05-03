@@ -49,7 +49,7 @@ pnut
 * stash (s)                                Quickly stash terminal text peanuts 🥜 for reuse later
 * pop (p)                                  Pop last stashed text peanut 🥜 back to terminal
 * list (l)                                 Manage 🥜 stash (add/run/clipboard/print/label/ai/share)
-* askGemini (ai)                           Infer command lines using Gemini API (paid/free supported)
+* gemini (ai)                              Setup/Infer commands with Gemini v1 API (paid/free)
 
 * users (u)                                Manage connected users to share with
 
