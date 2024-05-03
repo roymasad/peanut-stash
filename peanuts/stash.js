@@ -37,7 +37,9 @@ import {  encryptStringWithPublicKey,
     fetchJsonAPI } from './utilities.js';
 
 // Save user's data text 'peanut' to his list/stash of peanuts
-export async function stashPeanut (user, db) {
+// exitBehavior: "quit" or "return". depending if function is used independently or within a menu
+// quit will exit the app, return will return to the main menu
+export async function stashPeanut (user, db, exitBehavior="quit") {
 
     // variables and constants for the loop
     const uid = user.uid;
@@ -87,13 +89,14 @@ export async function stashPeanut (user, db) {
             if (data.length == 0)
                 {
                     console.log(`${color.yellow("Error: Empty text")}`);
-                    process.exit(0);
+                    continue;
                 }
         } catch(error) {
             if (error == "Error: canceled")
                 console.log(`${color.yellow("Cancelled")}`);
             else console.log(`${color.yellow(error)}`);
-            process.exit(0);
+            if (exitBehavior == "quit") process.exit(0);
+            else return;
         }
 
         // Metadata to add to text are timestamp and user id/email
@@ -108,7 +111,8 @@ export async function stashPeanut (user, db) {
 
         if (prompts.isCancel(answer_category)) {
             console.log(color.yellow("Cancelled"));
-            process.exit(0);
+            if (exitBehavior == "quit") process.exit(0);
+            else return;
         }
     
         // Check if we directly got an answer or are going to manage categories
@@ -119,13 +123,15 @@ export async function stashPeanut (user, db) {
                 if (answer.length == 0)
                 {
                     console.log(`${color.yellow("Error: Empty text")}`);
-                    process.exit(0);
+                    if (exitBehavior == "quit") process.exit(0);
+                    else return;
                 }
             } catch(error) {
                 if (error == "Error: canceled")
                     console.log(`${color.yellow("Cancelled")}`);
                 else console.log(`${color.yellow(error)}`);
-                process.exit(0);
+                if (exitBehavior == "quit") process.exit(0);
+                else return;
             }
 
             // select it
@@ -155,7 +161,8 @@ export async function stashPeanut (user, db) {
         // check that data is not bigger than 4096 bytes
         if (data.length > MAX_PEANUT_TEXT_LENGTH) {
             console.log(`${color.red('Error:')} Peanut text is too long`);
-            process.exit(1);
+            if (exitBehavior == "quit") process.exit(0);
+            else return;
         }
     
         let peanutData = {
@@ -306,7 +313,7 @@ export async function listPeanuts(user, db) {
             // if not on the last page show next button
             if (currentPage < Math.floor((listLength-1) / MAX_ITEMS_PER_PAGE)) {
                 promptList.push({ 
-                    label: color.cyan('Next Page'), 
+                    label: color.magenta('Next Page'), 
                     value: "NXT:" + "Next",
 
                 }); 
@@ -314,7 +321,7 @@ export async function listPeanuts(user, db) {
 
             if ((currentPage >= Math.floor((listLength-1) / MAX_ITEMS_PER_PAGE)) && currentPage != 0 ) {
                 promptList.push({ 
-                    label: color.cyan('Back Page'), 
+                    label: color.magenta('Back Page'), 
                     value: "BAK:" + "Back",
                 }); 
             } 
@@ -323,11 +330,16 @@ export async function listPeanuts(user, db) {
                 label: color.green('List by Category'), 
                 value: "CAT:" + "Category",
             });
+
+            promptList.push({ 
+                label: color.cyan('Add'), 
+                value: "ADD:" + "Add",
+            });
+
             promptList.push({ 
                 label: color.yellow('Cancel'), 
                 value: "END:" + "Cancel",
             });
-
 
             // Clack JS prompt, show a list of all peanuts to select from, sorted by latest
             let answer_peanut = await prompts.select({
@@ -355,8 +367,8 @@ export async function listPeanuts(user, db) {
                 // Clack JS prompt, select an action on the peanut
                 answer_action = await prompts.select({
                     message: 'Action',
-                    options: [  {value: 'clipboard' , label: 'Clipboard'}, 
-                                {value: 'print' , label: 'Print'},
+                    options: [  {value: 'clipboard' , label: color.magenta('Clipboard')}, 
+                                {value: 'print' , label: color.magenta('Print')},
                                 {value: 'share' , label: color.blue('Share with user')},
                                 {value: 'category' , label: color.blue('Change category')},
                                 {value: 'ai' , label: color.cyan('Ask AI to explain')},
@@ -686,6 +698,10 @@ export async function listPeanuts(user, db) {
             }
             else if (answer_peanut.substring(0, 4) == "BAK:") {
                 currentPage--;
+            }
+            else if (answer_peanut.substring(0, 4) == "ADD:") {
+                // set the exitBehavior to return to come back to this function
+                await stashPeanut (user, db, "return");
             }
             else if (answer_peanut.substring(0, 4) == "END:") {
                 console.log(`${color.yellow('Cancelled')}`);
