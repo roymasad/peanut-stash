@@ -2,7 +2,7 @@
 
 /****
  * 
- * Peanut Stash 1.0.12
+ * Peanut Stash 1.0.13
  * 
  * By Roy Massaad
  * 

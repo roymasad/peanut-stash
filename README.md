@@ -1,4 +1,4 @@
-# Peanut Stash 1.0.12 
+# Peanut Stash 🥜 1.0.13 
 
 ### Description:
 Collaborative command line cloud Stash, Share, Copy & Paste tool.
@@ -46,9 +46,9 @@ pnut
 * logout (o)                               Logout
 * reset (rs)                               Reset password
   
-* stash (s)                                Quickly stash terminal text peanuts for reuse later
-* pop (p)                                  Pop last stashed text peanut back to terminal
-* list (l)                                 Manage stash (add/run/clipboard/print/label/ai/share)
+* stash (s)                                Quickly stash terminal text peanuts 🥜 for reuse later
+* pop (p)                                  Pop last stashed text peanut 🥜 back to terminal
+* list (l)                                 Manage 🥜 stash (add/run/clipboard/print/label/ai/share)
 * askGemini (ai)                           Infer command lines using Gemini API (paid/free supported)
 
 * users (u)                                Manage connected users to share with
@@ -78,7 +78,7 @@ pnut p
 
 ### Features:
 
-* Cloud based collaborative copy pasting of terminal commands (peanuts!)
+* Cloud based collaborative copy pasting of terminal commands (peanuts! 🥜)
 * Requires an account with email verification
 * Ready out of the box to try out
 * Access your stash of commands anywhere you can login
@@ -119,7 +119,7 @@ Certain intentionally missing features like not using custom access tokens to lo
 In this spirit, the app design is that of a purely client logic/architecture on the main branch which can access the realtime firebase database directly from the node app securely without going through API server endpoints or any paid features. (and the pros and cons that comes with this approach). Firebase admin sdk cannot be used in such a project since we aren't using server modules and for security reasons we can't use the admin sdk in an unsecure public client environment.
 
 
-# Roadmap for versions 1.0.12+:
+# Roadmap for versions 1.0.13+:
 
 * Add comments to text peanuts
 * Add unit testing
