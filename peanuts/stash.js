@@ -231,6 +231,8 @@ export async function listPeanuts(user, db) {
 
     var filterCategory = "all:all";
 
+    var currentPage = 0;
+
     // Read data from the database
     while(true) {
         
@@ -240,8 +242,6 @@ export async function listPeanuts(user, db) {
             
             // Convert snapshot to an array of values
             let peanutList = [];
-            // Create an backup of the peanut list used for filtering by category
-            let peanutListBackup = [];
 
             snapshot.forEach((peanut) => {
                 
@@ -265,18 +265,13 @@ export async function listPeanuts(user, db) {
             // Reverse the loaded array to have the latest items first
             peanutList.reverse();
 
-            peanutListBackup = peanutList.slice();
-
             // Enable pagination of the loaded list
             let listLength = peanutList.length;
-            let currentPage = 0;
 
             // Clack JS compatible prompt list
             let promptList;
             let answer_action;
                 
-            
-
             promptList = [];
             answer_action = null;
 
@@ -309,30 +304,29 @@ export async function listPeanuts(user, db) {
             };
 
             // if not on the last page show next button
-            if (currentPage < Math.floor(listLength / MAX_ITEMS_PER_PAGE)) {
+            if (currentPage < Math.floor((listLength-1) / MAX_ITEMS_PER_PAGE)) {
                 promptList.push({ 
                     label: color.cyan('Next Page'), 
                     value: "NXT:" + "Next",
 
                 }); 
+            } 
+
+            if ((currentPage >= Math.floor((listLength-1) / MAX_ITEMS_PER_PAGE)) && currentPage != 0 ) {
                 promptList.push({ 
-                    label: color.green('List by Category'), 
-                    value: "CAT:" + "Category",
-                });
-                promptList.push({ 
-                    label: color.yellow('Cancel'), 
-                    value: "END:" + "Cancel",
-                });
-            } else {
-                promptList.push({ 
-                    label: color.green('List by Category'), 
-                    value: "CAT:" + "Category",
-                });
-                promptList.push({ 
-                    label: color.yellow('Cancel'), 
-                    value: "END:" + "Cancel",
-                });
-            }
+                    label: color.cyan('Back Page'), 
+                    value: "BAK:" + "Back",
+                }); 
+            } 
+
+            promptList.push({ 
+                label: color.green('List by Category'), 
+                value: "CAT:" + "Category",
+            });
+            promptList.push({ 
+                label: color.yellow('Cancel'), 
+                value: "END:" + "Cancel",
+            });
 
 
             // Clack JS prompt, show a list of all peanuts to select from, sorted by latest
@@ -564,6 +558,7 @@ export async function listPeanuts(user, db) {
                             try {
                                 await remove(peanutList[metaDataIndex].databaseRef);
                                 console.log(`${color.cyan('\nDeleted..')}\n`);
+                                currentPage = 0;
                                 continue;
                             } catch (error) {
                                 console.error(error);
@@ -689,16 +684,17 @@ export async function listPeanuts(user, db) {
             else if (answer_peanut.substring(0, 4) == "NXT:") {
                 currentPage++;
             }
+            else if (answer_peanut.substring(0, 4) == "BAK:") {
+                currentPage--;
+            }
             else if (answer_peanut.substring(0, 4) == "END:") {
                 console.log(`${color.yellow('Cancelled')}`);
                 process.exit(0);
             }
-        
-
             
         } else {
             console.log(`${color.cyan('No Peanuts Stashed.')}`);
-            process.exit(1);
+            process.exit(0);
         }
     }
 

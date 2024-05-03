@@ -27,7 +27,7 @@ import {  stashPeanut,
 
 // Show console help arguments
 export function showArgs() {
-    console.log(`\n${color.cyan('Peanut Stash 1.0.10')} - Collaborative command line cloud Stash, Share, Copy & Paste tool.\n`);
+    console.log(`\n${color.cyan('Peanut Stash 1.0.11')} - Collaborative command line cloud Stash, Share, Copy & Paste tool.\n`);
     console.log("Quickly stash, pop, send & receive console commands and text with your coding, IT, devops teams.\n")
     console.log(`${color.yellow("Arguments Usage:\n")}`);
   
@@ -149,7 +149,7 @@ export function stateMachine(db, auth, user, action, args) {
 
       case "about":
       case "a":
-        console.log(figlet.textSync("Peanut Stash 1.0.10", { horizontalLayout: "full" }));
+        console.log(figlet.textSync("Peanut Stash 1.0.11", { horizontalLayout: "full" }));
         console.log(`Quickly stash, pop, send & receive console commands and text with your team.\nHelpful tiny tool for coders, IT and devops who work frequently within the terminal.\n\nUnlike pastebin and its 3rd party tools/ecosystem, this tool and project is more focused on quick efficient terminal commands stashing/sharing and not on code sharing.\nhttps://www.npmjs.com/package/peanut-stash`);
         process.exit(0);
         break;
