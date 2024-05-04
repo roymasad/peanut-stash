@@ -29,7 +29,10 @@ import fs from 'fs';
 import path from 'path';
 import os from 'os';
 
-import {MAX_ITEMS_PER_PAGE, MAX_PEANUT_TEXT_LENGTH} from './consts.js';
+import {
+    MAX_ITEMS_PER_PAGE, 
+    MAX_PEANUT_TEXT_LENGTH, 
+    MAX_PEANUT_NOTE_LENGTH} from './consts.js';
 
 import {  encryptStringWithPublicKey, 
     decryptStringWithPrivateKey, 
@@ -52,7 +55,6 @@ export async function stashPeanut (user, db, exitBehavior="quit") {
         const categoryRef = ref(db, `users/${firebase_email}/private/categories`);
         
         let categoriesList = []; // for display initially
-        let categoriesListCopy = []; // for display to manage, slightly different content
         let categories = []; // to save extra data such as db ref to be able to delete
         let selectedCategory = "default";
 
@@ -77,8 +79,6 @@ export async function stashPeanut (user, db, exitBehavior="quit") {
             process.exit(1);
         }
         categoriesList.reverse(); // latest first
-        // make a copy of categoriesList for management (without default/manage)
-        categoriesListCopy = categoriesList.slice();
 
         // add default category with suffix
         categoriesList.unshift({label: color.yellow("default"), value: "DAT:-1:default"}); //top
@@ -157,9 +157,9 @@ export async function stashPeanut (user, db, exitBehavior="quit") {
         // The only think i can think of could be the text size/length, but if we put a limitation here
         // What is the logic to define the limit? 
         // 4096 is the linux terminal limit we can use that for now, but it is unlikely to be user
-        // to optimize/secure database storay space, setting it to 2048 here and in the security rules 
+        // to optimize/secure database storay space, setting it to 1024 here and in the security rules 
     
-        // check that data is not bigger than 4096 bytes
+        // check that data is not bigger than max const bytes
         if (data.length > MAX_PEANUT_TEXT_LENGTH) {
             console.log(`${color.red('Error:')} Peanut text is too long`);
             if (exitBehavior == "quit") process.exit(0);
@@ -215,6 +215,7 @@ export async function listPeanuts(user, db) {
                     timestamp: serverTimestamp(), // should we keep or replace the original timestamp?
                     userEmail: peanut.val().email,
                     userId: peanut.val().userId,
+                    note : decryptStringWithPrivateKey(user.privateKey, peanut.val().note),
                     category: "imported"        // flag them as imported
                 };
     
@@ -266,6 +267,7 @@ export async function listPeanuts(user, db) {
                         email: peanut.val().userEmail,
                         userId: peanut.val().uid,
                         category: peanut.val().category,
+                        note: peanut.val().note,
                         databaseRef: peanut.ref
                         });
                 }
@@ -384,7 +386,7 @@ export async function listPeanuts(user, db) {
             
             // Clack JS prompt, show a list of all peanuts to select from, sorted by latest
             let answer_peanut = await prompts.select({
-                message: 'Select a peanut',
+                message: `Select a peanut (Category of ${(filterCategory == "all:all") ? color.cyan("All") : color.cyan(filterCategory)})`,
                 options: promptList
             });
 
@@ -417,6 +419,7 @@ export async function listPeanuts(user, db) {
                                 {value: 'print' , label: color.magenta('Print')},
                                 {value: 'share' , label: color.blue('Share with user')},
                                 {value: 'category' , label: color.blue('Change category')},
+                                {value: 'note' , label: color.blue('Add/View note')},
                                 {value: 'ai' , label: color.cyan('Ask AI to explain')},
                                 {value: 'execute' , label: color.cyan('# Execute/Open #')},
                                 {value: 'cancel' , label: color.yellow('Cancel')},
@@ -432,8 +435,40 @@ export async function listPeanuts(user, db) {
                 // Excute logic of selected action
                 switch (answer_action) {
 
-                    case 'ai':
+                    // View, add or edit note attached to command to explain it
+                    case 'note':
+                        if (peanutList[metaDataIndex].note) console.log("\n" + color.green("Attached Command Note: ") + peanutList[metaDataIndex].note); 
+                        else console.log(color.yellow("No note attached to this command. Add one with pnut note"));
 
+                        try {
+                            var data = await read({prompt: `${color.cyan('\nWrite new note or CTRL+C to go back to menu:\n')} `});
+                            
+                            if (data.length == 0){
+                                console.log(`${color.yellow("Error: Empty text")}`);
+                                continue;
+                            }
+                            if (data.length > MAX_PEANUT_NOTE_LENGTH) {
+                                console.log(`${color.red('Error:')} Note text is too long`);
+                                continue;
+                            }
+
+                            await update(peanutList[metaDataIndex].databaseRef, {note: data});
+
+                            console.log(`${color.green('\nNote saved.')}`);
+
+                            continue;
+
+                        } catch(error) {
+                            if (error == "Error: canceled")
+                                console.log(`${color.yellow("Cancelled")}`);
+                            else console.log(`${color.yellow(error)}`);
+                            continue;
+                        }
+
+                        break;
+                    
+                    // Ask AI to explain the command
+                    case 'ai':
                     const hiddenFolderPath = path.join(os.homedir(), '.peanuts');
                     const AIConfFilePath = path.join(hiddenFolderPath, 'ai.json');
                 
@@ -459,7 +494,6 @@ export async function listPeanuts(user, db) {
                         console.log(color.yellow(`AI configuration not found. One is needed to infer commands. Add one with pnut ai`));
                         continue;
                     }
-                    process.exit(0)
                     break;
 
                     // Chance current text peanut category
@@ -562,6 +596,7 @@ export async function listPeanuts(user, db) {
                                 if (snapshot.exists()) {
                                     let publicKey = snapshot.val();
 
+                                    try {
                                     // Copy selected item to user's pending-texts
                                     // and encrypt it with the user's public key
                                     await push(ref(db, `users/${answer_user}/public/pending-text/`), {
@@ -569,8 +604,15 @@ export async function listPeanuts(user, db) {
                                         timestamp: serverTimestamp(),
                                         email: userEmail.replace(/\_/g, '.'),
                                         userId: user.uid,
+                                        note : encryptStringWithPublicKey(publicKey, peanutList[metaDataIndex].note)
                                     });
                                     console.log(`\n${color.green('\nSuccess:')} Shared with user\n`);
+                                    } catch (error) {
+                                        //console.error(color.red('Error:'), error);
+                                        console.log(color.red("Error: Make sure the other user added you to successfully send them your terminal text peanuts"));
+                                        continue;
+                                    }
+
                                     continue;
                                 }
                                 else {
@@ -579,14 +621,13 @@ export async function listPeanuts(user, db) {
                                 }     
                             }
                             else {
-                                console.log(`${color.red('Error:')} No active user account found online with email ${userEmail}`);
-                                process.exit(0);
+                                console.log(`${color.red('Error:')} No added users found. Add with the "pnut u" command`);
+                                continue;
                             }
                         } catch (error) {
                             console.error(color.red('Error:'), error);
                             process.exit(0);
                         }
-                        process.exit(0);
                         break;
 
                     // Copy selected peanut to clipboard

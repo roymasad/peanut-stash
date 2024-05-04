@@ -150,6 +150,8 @@ export async function loginUser(email, auth , db) {
                 // });
 
                 console.log(`${color.green('\nSuccess:')} User logged in`);
+                console.log('You can now stash, pop, manage terminal commands, ask Ai and share with other users!');
+                console.log('Run "pnut" to see list of arguments. Main ones are "stash" and "list".\n');
                 s.stop();
                 process.exit(0);
                 
@@ -163,6 +165,8 @@ export async function loginUser(email, auth , db) {
         else {
             s.stop();
             console.log(`${color.green('Success:')} User logged in`);
+            console.log('You can now stash, pop, manage terminal commands, ask Ai and share with other users!');
+            console.log('Run "pnut" to see list of arguments. Main ones are "stash" and "list".\n');
             process.exit(0);
         }          
     })
@@ -235,6 +239,7 @@ export async function registerUser(email, auth) {
     sendEmailVerification(auth.currentUser)
         .then(() => {
         console.log(`\n${color.green('Success:')} Verification email sent`);
+        console.log(`\n Login with "pnut login ${email}" after you verify\n`);
         s.stop()
         process.exit(0);
         });

@@ -31,7 +31,8 @@
               "email": { ".validate": "newData.isString() && newData.val() === auth.email && newData.val().length <= 128"},
               "userId": { ".validate": "newData.isString() && newData.val() === auth.uid && newData.val().length <= 32"}, 
               "timestamp": { ".validate": "newData.isNumber()"},
-              "data": { ".validate": "newData.isString() && newData.val().length <= 2048"},
+              "data": { ".validate": "newData.isString() && newData.val().length <= 1024"},
+              "note": { ".validate": "newData.isString() && newData.val().length <= 512"},
                "$other": { ".validate": false }
             }
           },
@@ -67,14 +68,15 @@
               "userEmail": { ".validate": "newData.isString() && newData.val().length <= 128"},
               "userId": { ".validate": "newData.isString() && newData.val().length <= 32"}, 
               "timestamp": { ".validate": "newData.isNumber()"},
-              "data": { ".validate": "newData.isString() && newData.val().length <= 2048"},
-              "category": { ".validate": "newData.isString() && newData.val().length <= 64"},
+              "data": { ".validate": "newData.isString() && newData.val().length <= 1024"},
+              "note": { ".validate": "newData.isString() && newData.val().length <= 512"},
+              "category": { ".validate": "newData.isString() && newData.val().length <= 32"},
               "$other": { ".validate": false }
             }
           },
           "categories": {
             "$category":{
-              "name": { ".validate": "newData.isString() && newData.val().length <= 64"},
+              "name": { ".validate": "newData.isString() && newData.val().length <= 32"},
               "$other": { ".validate": false }
             }
           },
