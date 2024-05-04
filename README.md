@@ -1,23 +1,33 @@
 # Peanut Stash 🥜 1.0.14 
 
+<div align="center" width="100%">
+
+<img width="300px" src="peanut-stash-logo.png">
+
+</div>
+
+<div align="center" width="100%">
+
+<img width="125px" height="30px" src="https://img.shields.io/badge/LICENSE-MIT-3D1?style=for-the-badge">
+<img width="125px" height="30px" src="https://img.shields.io/badge/DISCORD-LIVE-69c?style=for-the-badge">
+<img width="125px" height="30px" src="https://img.shields.io/badge/NPM-1.0.14-6FA?style=for-the-badge">
+
+</div>
+
 ### Description:
 Collaborative command line cloud Stash, Share, Copy & Paste tool.
 
 Quickly stash, pop, run, send & receive console commands and text with your team.
 Helpful tiny secure tool for coders, IT and devops who work frequently within the terminal.
 
+Move away from saving your favorite lists of common project/tech terminal commands in a bunch of text files and instead access them quickly in an organized smart fashion from the terminal itself of any computer.
+
 Unlike pastebin and its 3rd party tools/ecosystem, this tool and project is more focused on quick efficient terminal commands stashing/sharing and not on code sharing.
-
-
-
-[![](https://img.shields.io/badge/LICENSE-MIT-3D1?style=for-the-badge)](https://github.com/roymasad/peanut-stash?tab=MIT-1-ov-file#readme)
-[![](https://img.shields.io/badge/DISCORD-LIVE-69c?style=for-the-badge)](https://discord.gg/ar8VN8yY)
-[![](https://img.shields.io/badge/NPM-1.0.15-6FA?style=for-the-badge)](https://www.npmjs.com/package/peanut-stash)
 
 
 ![](screenshot.png)
 
-![](https://github.com/roymasad/peanut-stash/blob/b98590830ec3fa2e806bb850a484cd6253c693e9/console.gif)
+![](console.gif)
 
 ### Requirements:
 
@@ -45,8 +55,9 @@ npm i -g peanut-stash
 
 ###  Command:
 
+```sh
 pnut
-
+```
 ### Arguments Usage:
 
     register (r) <email>                     Register new account
@@ -68,6 +79,7 @@ pnut
     about (a)                                About Page
 
 ### Examples:
+
     pnut stash  
 
 (or shorthand) 
@@ -108,7 +120,7 @@ pnut
 Peanut stash saves under ~/.peanuts its configuration files (login, ai key and custom server)
 In case of issues, such as using wrong custom server config, you can remove those files to reset it
 
-## Important Notes:
+### Important Notes:
 
 Currently the app when installed runs by default on a public testing server, so no need to set one up initially to check it.
 
