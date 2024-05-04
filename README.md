@@ -8,13 +8,18 @@ Helpful tiny secure tool for coders, IT and devops who work frequently within th
 
 Unlike pastebin and its 3rd party tools/ecosystem, this tool and project is more focused on quick efficient terminal commands stashing/sharing and not on code sharing.
 
-License: MIT
+
+
+[![](https://img.shields.io/badge/LICENSE-MIT-3D1?style=for-the-badge)](https://github.com/roymasad/peanut-stash?tab=MIT-1-ov-file#readme)
+[![](https://img.shields.io/badge/DISCORD-LIVE-69c?style=for-the-badge)](https://discord.gg/ar8VN8yY)
+[![](https://img.shields.io/badge/NPM-1.0.15-6FA?style=for-the-badge)](https://www.npmjs.com/package/peanut-stash)
+
 
 ![](screenshot.png)
 
 ![](https://github.com/roymasad/peanut-stash/blob/b98590830ec3fa2e806bb850a484cd6253c693e9/console.gif)
 
-##### Requirements:
+### Requirements:
 
 Nodejs 20+
 
@@ -22,58 +27,61 @@ Firebase project (Optional)
 
 Requires internet connection
 
-##### Development Installation:
+### Development Installation:
 
+```sh
 npm install
+```
 
 Note: to test/work using  your own local firebase emulator server (firebase + authentication)
 You have edit config/local-testing-server.env and put your own local emulator IDs
 
-##### NPM Installation:
+### NPM Installation:
 
+```sh
 npm i -g peanut-stash
+```
+[https://www.npmjs.com/package/peanut-stash](https://www.npmjs.com/package/peanut-stash)
 
-[npm.com](https://www.npmjs.com/package/peanut-stash)
-
-#####  Command:
+###  Command:
 
 pnut
 
-#### Arguments Usage:
+### Arguments Usage:
 
-* register (r) <email>                     Register new account
-* login (i) <email>                        Login  (REQUIRED)
-* logout (o)                               Logout
-* reset (rs)                               Reset password
+    register (r) <email>                     Register new account
+    login (i) <email>                        Login  (REQUIRED)
+    logout (o)                               Logout
+    reset (rs)                               Reset password
   
-* stash (s)                                Quickly stash terminal text peanuts 🥜 for reuse later
-* pop (p)                                  Pop last stashed text peanut 🥜 back to terminal
-* list (l)                                 Manage 🥜 stash (add/run/clipboard/print/label/ai/share)
-* gemini (ai)                              Setup/Infer commands with Gemini v1 API (paid/free)
+    stash (s)                                Quickly stash terminal text peanuts 🥜 for reuse later
+    pop (p)                                  Pop last stashed text peanut 🥜 back to terminal
+    list (l)                                 Manage 🥜 stash (add/run/clipboard/print/label/ai/share)
+    gemini (ai)                              Setup/Infer commands with Gemini v1 API (paid/free)
 
-* users (u)                                Manage connected users to share with
+    users (u)                                Manage connected users to share with
 
-* categories (c)                           Manage label categories
+    categories (c)                           Manage label categories
 
-* server (sv)                              Use default or custom firebase server (web app creds)
+    server (sv)                              Use default or custom firebase server (web app creds)
 
-* about (a)                                About Page
+    about (a)                                About Page
 
-#### Examples:
+### Examples:
+    pnut stash  
 
-pnut stash  
 (or shorthand) 
-pnut s 
+    pnut s 
 (then type or paste your terminal text, ie : adb shell pm list packages -e) 
 
-pnut list
+    pnut list
 (or shorthand) 
-pnut l
+    pnut l
 (forward/use/delete/copy/ai..)
 
-pnut pop
+    pnut pop
 (or shorthand) 
-pnut p
+    pnut p
 (get the last stashed text peanut)
 
 ### Features:
@@ -95,12 +103,12 @@ pnut p
 * Public testing server available with the project (read below notes)
 * Optional Integration with Gemini V1 API (Free/paid keys) to help create & explain command lines
 
-#### Config & troubleshooting
+### Config & troubleshooting
 
 Peanut stash saves under ~/.peanuts its configuration files (login, ai key and custom server)
 In case of issues, such as using wrong custom server config, you can remove those files to reset it
 
-#### Must Read, Important Notes:
+## Important Notes:
 
 Currently the app when installed runs by default on a public testing server, so no need to set one up initially to check it.
 
@@ -119,7 +127,7 @@ Certain intentionally missing features like not using custom access tokens to lo
 In this spirit, the app design is that of a purely client logic/architecture on the main branch which can access the realtime firebase database directly from the node app securely without going through API server endpoints or any paid features. (and the pros and cons that comes with this approach). Firebase admin sdk cannot be used in such a project since we aren't using server modules and for security reasons we can't use the admin sdk in an unsecure public client environment.
 
 
-# Roadmap for versions 1.0.14+:
+### Roadmap for versions 1.0.14+:
 
 * Add unit testing
 * Refactor to use a providers class
@@ -131,7 +139,7 @@ In this spirit, the app design is that of a purely client logic/architecture on 
 * Add support for group team sharing
 * Support public mass sharing similar to pastebin (using unique public id of text)
 * Publish pacakge on homebrew (and nuget ?)
-* Add a RAG-like AI prompt that helps you quickly search within category labels to find a peanut
+
 
   
   
