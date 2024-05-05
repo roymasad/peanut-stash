@@ -1,4 +1,4 @@
-# Peanut Stash 🥜 1.0.14 
+# Peanut Stash 🥜 1.0.15 
 
 <div align="center" width="100%">
 
@@ -10,7 +10,7 @@
 
 <img width="125px" height="30px" src="https://img.shields.io/badge/LICENSE-MIT-3D1?style=for-the-badge">
 <img width="125px" height="30px" src="https://img.shields.io/badge/DISCORD-LIVE-69c?style=for-the-badge">
-<img width="125px" height="30px" src="https://img.shields.io/badge/NPM-1.0.14-6FA?style=for-the-badge">
+<img width="125px" height="30px" src="https://img.shields.io/badge/NPM-1.0.15-6FA?style=for-the-badge">
 
 </div>
 
@@ -101,19 +101,22 @@ pnut
 * Cloud based collaborative copy pasting of terminal commands (peanuts! 🥜)
 * Requires an account with email verification
 * Ready out of the box to try out
-* Access your stash of commands anywhere you can login
-* Stash, pop, open, execute, categorise, clipboard copy, ask ai, share commands quickly with colleagues
-* Works on firebase free spark plan or blaze, you just need realtime DB and Auth with email enabled
-* Manage users to share text peanut with
-* Manage category labels to filter/organize your text peanuts
+* Access your stash of terminal commands anywhere you login
+* Stash, pop, execute, categorise, clipboard copy, ask ai, edit, share commands quickly with colleagues
+* Open links in browser from terminal console
+* Attach notes to stashed peanut texts to remind you what the commands do and add context
+* Manage cloud users to share text peanut with
+* Manage category labels to filter/organize your text peanut commands
 * Simple cloud design requires no server logic/functions/api endpoints
-* Supports private servers (works on firebase free Spark plan)
+* Default public testing server available with the project (read below notes)
+* Supports private custom servers with easy quick setup
+* Works on firebase free spark plan or blaze, you just need realtime DB and Auth with email enabled
 * RSA used to secure encryption of peanut texts
 * Symmetrical encryption for login credentials based on machine signatures
 * Color codded interactive prompts
 * Firebase realtime db security rules for autherization and access control of data
-* Public testing server available with the project (read below notes)
-* Optional Integration with Gemini V1 API (Free/paid keys) to help create & explain command lines
+* Integration with Gemini V1 API (Free/paid keys required) to help create, find & explain command lines
+* Export single commands or entire collections to unlisted pastebin URLs (key required)
 
 ### Config & troubleshooting
 
@@ -139,18 +142,17 @@ Certain intentionally missing features like not using custom access tokens to lo
 In this spirit, the app design is that of a purely client logic/architecture on the main branch which can access the realtime firebase database directly from the node app securely without going through API server endpoints or any paid features. (and the pros and cons that comes with this approach). Firebase admin sdk cannot be used in such a project since we aren't using server modules and for security reasons we can't use the admin sdk in an unsecure public client environment.
 
 
-### Roadmap for versions 1.0.14+:
+### Roadmap for versions 1.0.15+:
 
 * Add unit testing
-* Refactor to use a providers class
-* Add offline stash support (will require providers class)
-* Add bulk stash import (from files)
-* Support interface for different serverless providers like supabase (will require providers class)
-* Support interface for rest api endpoints (will require providers class)
+* Refactor to use/add a provider class
+* Add offline stash support (will require provider class)
+* Add bulk stash import (from files or pastebin urls)
+* Support interface for different serverless providers like supabase (will require provider class)
+* Support interface for rest api endpoints (will require provider class)
 * Complementary chrome brower extension pluging side project (different repo/project probably)
 * Add support for group team sharing
-* Support public mass sharing similar to pastebin (using unique public id of text)
-* Publish pacakge on homebrew (and nuget ?)
+* Publish package also on homebrew and/or nuget ?
 
 
   

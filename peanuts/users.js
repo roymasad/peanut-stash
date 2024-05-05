@@ -149,7 +149,7 @@ export async function loginUser(email, auth , db) {
                 //     dummy: 'default',
                 // });
 
-                console.log(`${color.green('\nSuccess:')} User logged in`);
+                console.log(`${color.green('\nSuccess:')} User logged in. No need to login again for this account.`);
                 console.log('You can now stash, pop, manage terminal commands, ask Ai and share with other users!');
                 console.log('Run "pnut" to see list of arguments. Main ones are "stash" and "list".\n');
                 s.stop();

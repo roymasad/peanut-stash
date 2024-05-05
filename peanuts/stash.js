@@ -38,6 +38,7 @@ import {  encryptStringWithPublicKey,
     decryptStringWithPrivateKey, 
     generateGeminiAnswers,
     getTerminalSize,
+    exportPasteBin,
     fetchJsonAPI } from './utilities.js';
 
 // Save user's data text 'peanut' to his list/stash of peanuts
@@ -415,11 +416,13 @@ export async function listPeanuts(user, db) {
                 // Clack JS prompt, select an action on the peanut
                 answer_action = await prompts.select({
                     message: 'Action',
-                    options: [  {value: 'clipboard' , label: color.magenta('Clipboard')}, 
+                    options: [  {value: 'edit' , label: color.green('Edit')},  
+                                {value: 'clipboard' , label: color.magenta('Clipboard')}, 
                                 {value: 'print' , label: color.magenta('Print')},
+                                {value: 'exportPastebin' , label: color.magenta('Export to Pastebin')},
                                 {value: 'share' , label: color.blue('Share with user')},
                                 {value: 'category' , label: color.blue('Change category')},
-                                {value: 'note' , label: color.blue('Add/View note')},
+                                {value: 'note' , label: color.blue('Edit attached note')},
                                 {value: 'ai' , label: color.cyan('Ask AI to explain')},
                                 {value: 'execute' , label: color.cyan('# Execute/Open #')},
                                 {value: 'cancel' , label: color.yellow('Cancel')},
@@ -435,6 +438,46 @@ export async function listPeanuts(user, db) {
                 // Excute logic of selected action
                 switch (answer_action) {
 
+                    // Edit selected peanut text command
+
+                    case 'edit':
+
+                        try {
+                            // Read new text
+                            var data = await read({prompt: `${color.cyan('\nWrite new commandtext or CTRL+C to cancel:\n')} `});
+                            
+                            if (data.length == 0){
+                                console.log(`${color.yellow("Error: Empty text")}`);
+                                continue;
+                            }
+                            if (data.length > MAX_PEANUT_TEXT_LENGTH) {
+                                console.log(`${color.red('Error:')} Command text is too long`);
+                                continue;
+                            }
+
+                            // Save new text
+                            await update(peanutList[metaDataIndex].databaseRef, {data: encryptStringWithPublicKey(user.publicKey, data)});
+
+                            console.log(`${color.green("\nSuccess: Peanut text command updated")}`);
+
+                            continue;
+
+                        } catch (error) {
+                            if (error == "Error: canceled")
+                                console.log(`${color.yellow("Cancelled")}`);
+                            else console.log(`${color.yellow(error)}`);
+                            continue;
+                        }
+                        break;
+
+                    // Export to pastebin
+                    case 'exportPastebin':
+
+                        await exportPasteBin(user, db, peanutList[metaDataIndex].data, 'single');
+
+                        continue;
+                        break
+                    
                     // View, add or edit note attached to command to explain it
                     case 'note':
                         if (peanutList[metaDataIndex].note) console.log("\n" + color.green("Attached Command Note: ") + peanutList[metaDataIndex].note); 
@@ -838,7 +881,6 @@ export async function popPeanut(user, db) {
 
     });
 }
-
 
 async function aiFind(user, db, peanuts) {
 

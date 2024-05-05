@@ -10,25 +10,33 @@ import os from 'os';
 import {read} from 'read';
 import tty from 'tty';
 
-import {  ref, 
-          push, 
-          get, 
-          remove,
+import {  
+  ref, 
+  push, 
+  get, 
+  remove,
 } from 'firebase/database';
 
-import {  loginUser,
-          logoutUser,
-          manageUsers,
-          resetPassword,
-          registerUser } from './users.js';
+import { 
+  PasteClient, 
+  Publicity, 
+  ExpireDate } from "pastebin-api";
 
-import {  stashPeanut,
-          listPeanuts,
-          popPeanut } from './stash.js';
+import {  
+  loginUser,
+  logoutUser,
+  manageUsers,
+  resetPassword,
+  registerUser } from './users.js';
+
+import {  
+  stashPeanut,
+  listPeanuts,
+  popPeanut } from './stash.js';
 
 // Show console help arguments
 export function showArgs() {
-    console.log(`\n${color.cyan('Peanut Stash 🥜 1.0.14')} - Collaborative command line cloud Stash, Share, Copy & Paste tool.\n`);
+    console.log(`\n${color.cyan('Peanut Stash 🥜 1.0.15')} - Collaborative command line cloud Stash, Share, Copy & Paste tool.\n`);
     console.log("Quickly stash, pop, run, send & receive console commands and text with your coding, IT, devops teams.\n")
     console.log(`${color.yellow("Arguments Usage:\n")}`);
   
@@ -78,7 +86,6 @@ export function showArgs() {
     return data;
   }
   
-
 // Process what to do based on state (user/action)
 export function stateMachine(db, auth, user, action, args) {
    
@@ -150,7 +157,7 @@ export function stateMachine(db, auth, user, action, args) {
 
       case "about":
       case "a":
-        console.log(figlet.textSync("Peanut Stash 1.0.14 ", { horizontalLayout: "full" }));
+        console.log(figlet.textSync("Peanut Stash 1.0.15 ", { horizontalLayout: "full" }));
         console.log(`Quickly stash, pop, run, send & receive console commands and text with your team.\nHelpful tiny tool for coders, IT and devops who work frequently within the terminal.\n\nUnlike pastebin and its 3rd party tools/ecosystem, this tool and project is more focused on quick efficient terminal commands stashing/sharing and not on code sharing.\n${color.cyan("https://github.com/roymasad/peanut-stash")}`);
         process.exit(0);
         break;
@@ -271,8 +278,8 @@ async function manageServer(){
 
     } else if (answer_action == 'custom') {
       
-        console.log("Enter your Firebase Web App Custom Project Keys");
-        console.log(color.yellow("https://console.firebase.google.com/"));
+        console.log("Enter your Firebase Web App Custom Project Keys (free Spark or paid Blaze");
+        console.log(color.yellow("New/Existing App: https://console.firebase.google.com/"));
       
         try {
           var apiKey = await read({ prompt: `${color.cyan('apiKey:')} `});
@@ -399,6 +406,7 @@ async function manageCategories(user, db){
         let manage_action = await prompts.select({
           message: 'Select Action',
           options: [
+              {label: color.magenta("Export to Pastebin"), value: "exportPastebin"},
               {label: color.yellow("Cancel"), value: "cancel"},
               {label: `${color.red("# Delete #")}`, value: "delete"},
           ]
@@ -409,14 +417,21 @@ async function manageCategories(user, db){
           process.exit(0);
         }
 
-        if (manage_action == "cancel") {
+        // export to pastebin entire category
+        if (manage_action == "exportPastebin") { 
+          answer_category = answer_category.slice(6);
+          await exportPasteBin(user, db, answer_category, 'category');
+          continue;
+        }
+        else if (manage_action == "cancel") {
           console.log(`${color.green('Cancelled')}`);
           continue;
         }
+        // delete category label (not content)
         else if (manage_action == "delete") {
 
               const shouldDelete = await prompts.confirm({
-                message: 'Are you Sure?',
+                message: 'This will delete the category label, not the content. Are you Sure?',
               });
 
               if (prompts.isCancel(shouldDelete)) {
@@ -457,7 +472,7 @@ async function askAI(user, db) {
 
   if (fs.existsSync(AIConfFilePath)) {
 
-    console.log("AI configuration found");
+    //console.log("AI configuration found");
 
     // load api key
     const aiData = fs.readFileSync(AIConfFilePath, 'utf8');
@@ -465,7 +480,7 @@ async function askAI(user, db) {
 
     // check if it is for gemini, for future support for other providers
     if (aiJSON.provider != "geminiV1") {
-      console.log(color.yellow("AI configuration present is not for Gemini. Exiting. Delete ~/.peanuts/ai.json and add new api key."));
+      console.log(color.yellow("AI configuration present is not for Gemini V1. Exiting. Delete ~/.peanuts/ai.json and add new api key."));
       process.exit(0);
     }
 
@@ -536,7 +551,7 @@ async function askAI(user, db) {
   }
   else {
     console.log(color.cyan("AI configuration not found. One is needed to infer commands."));
-    console.log(color.yellow("https://ai.google.dev/pricing"));
+    console.log(color.yellow("Get a free/paid v1 API key here: https://ai.google.dev/pricing"));
     // Ask the user to input their gemini API key so we can save as json to AIConfFilePath
 
     try {
@@ -656,5 +671,147 @@ export function getTerminalSize() {
       console.error('Error: stty command cannot be executed in a non-interactive shell.');
       return { columns: null, rows: null };
   }
+}
+
+// export data to paste bin either single mode or category
+export async function exportPasteBin(user, db, data, mode = "single") {
+
+  // variables and constants
+  const userEmail = user.email;
+  const firebase_email = userEmail.replace(/\./g, '_');
+  
+  // location of hidden pastebin config file
+  const hiddenFolderPath = path.join(os.homedir(), '.peanuts');
+  const PasteBinConfFilePath = path.join(hiddenFolderPath, 'pastbin.json');
+
+  // check if pastebin api key is present
+  if (fs.existsSync(PasteBinConfFilePath)) {
+
+    //console.log("PasteBin configuration found");
+
+    // load api key
+    const pastebinData = fs.readFileSync(PasteBinConfFilePath, 'utf8');
+    var pastebinJSON = JSON.parse(pastebinData);
+
+    // init pastebin client
+    const pastebinClient = new PasteClient(pastebinJSON.apiKey);
+
+    // ask for a title for the paste
+    try {
+      var title = await read({prompt: `${color.cyan('Choose a title name for the paste: ')} `});
+      if (title.length == 0)
+      {
+        console.log(`${color.yellow("Error: Empty text")}`);
+        return;
+      }
+      if (title.length > 100)   // PasteBin limit is 100 characters
+      {
+        console.log(`${color.yellow("Error: Text too long")}`);
+      }
+
+    } catch (error) {
+        if (error == "Error: canceled")
+          console.log(`${color.yellow("Cancelled")}`);
+      else console.log(`${color.yellow(error)}`);
+      return;
+    }
+
+    // are we exporting a single command or a category?
+    if (mode == "single"){
+
+      const url = await pastebinClient.createPaste({
+        code: data,
+        expireDate: ExpireDate.Never,
+        format: "bash",
+        name: title,
+        publicity: Publicity.Unlisted,
+      });
+      
+      console.log(color.green("\nSuccess: Command exported to pastebin"));
+      console.log("\nPasteBin URL: " + color.cyan(url) + "\n");
+
+      return;
+    }
+    else if (mode == "category"){
+
+      // if category is selected, then the data parameter is the category name
+      // load the text peanuts under that category as a list to save in pastebin
+
+      // load peanuts under that category 
+      const peanutRef = ref(db, `users/${firebase_email}/private/peanut-stash`);
+
+      let snapshot = await get(peanutRef);
+
+      if (snapshot.exists()) {
+
+        let peanutList = [];
+
+        snapshot.forEach((peanut) => {
+            
+            // Decrypt data with user private key
+            let decryptedPeanut = decryptStringWithPrivateKey(user.privateKey, peanut.val().data);
+            
+            // check if category matches
+            if (peanut.val().category == data)
+            {
+                peanutList.push(decryptedPeanut);
+            }
+        });
+
+        if (peanutList.length == 0) {
+          console.log(`${color.cyan('No Peanuts Stashed in that category.')}`);
+          return;
+        }
+
+        const url = await pastebinClient.createPaste({
+          code: peanutList.join("\n"),
+          expireDate: ExpireDate.Never,
+          format: "bash",
+          name: title,
+          publicity: Publicity.Unlisted,
+        })
+
+        console.log(color.green("\nSuccess: Category commands exported to pastebin"));
+        console.log("\nPasteBin URL: " + color.cyan(url) + "\n");
+        return;
+
+      }
+      else {
+        console.log(`${color.cyan('No Peanuts Stashed.')}`);
+        return;
+      }
+
+    }
+
+  }
+  else {
+    // no pastebin api key found, ask to save one
+    console.log(color.cyan("PasteBin configuration not found. One is needed to infer commands."));
+    console.log(color.yellow("Get a free api key here: https://pastebin.com/doc_api"));
+
+    try {
+      var pastebinAPIKey = await read({prompt: `${color.cyan('Enter Pastebin API key: ')} `});
+      if (pastebinAPIKey.length == 0)
+      {
+        console.log(`${color.yellow("Error: Empty text")}`);
+        process.exit(0);
+      }
+
+      let config_json = {
+        apiKey: pastebinAPIKey
+      }
+
+      // save the config to a file
+      fs.writeFileSync(PasteBinConfFilePath, JSON.stringify(config_json));
+
+      console.log(`${color.green('Success: Pastebin API key saved. Rerun command.')}`);
+      return;
+
+    } catch(error) {
+        console.log(`Error: ${color.red(error)}`);
+        process.exit(0);
+    }
+  }
+
 }
   
