@@ -98,7 +98,7 @@ pnut
 (get the last stashed text peanut)
 
     pnut a lst ~/project1
-(stashed command alis title to run would be 'lst' and the command template would be 'ls -al ${folder}' )
+(stashed command alias title to run would be 'lst' and the command template would be 'ls -al ${folder}' )
 
 ### Features:
 
