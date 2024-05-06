@@ -352,7 +352,7 @@ export async function listPeanuts(user, db) {
                 }); 
             } 
 
-            if ((currentPage >= Math.floor((listLength-1) / MAX_ITEMS_PER_PAGE)) && currentPage != 0 ) {
+            if ((currentPage <= Math.floor((listLength-1) / MAX_ITEMS_PER_PAGE)) && currentPage != 0 ) {
                 promptList.push({ 
                     label: color.green('Back Page'), 
                     value: "BAK:" + "Back",
@@ -416,15 +416,17 @@ export async function listPeanuts(user, db) {
                 // Clack JS prompt, select an action on the peanut
                 answer_action = await prompts.select({
                     message: 'Action',
-                    options: [  {value: 'edit' , label: color.green('Edit')},  
+                    options: [    
                                 {value: 'clipboard' , label: color.magenta('Clipboard')}, 
                                 {value: 'print' , label: color.magenta('Print')},
-                                {value: 'exportPastebin' , label: color.magenta('Export to Pastebin')},
+                                {value: 'edit' , label: color.green('Edit')},
+                                {value: 'execute' , label: color.green('# Execute/Open #')},
                                 {value: 'share' , label: color.blue('Share with user')},
                                 {value: 'category' , label: color.blue('Change category')},
                                 {value: 'note' , label: color.blue('Edit attached note')},
                                 {value: 'ai' , label: color.cyan('Ask AI to explain')},
-                                {value: 'execute' , label: color.cyan('# Execute/Open #')},
+                                {value: 'alias' , label: color.cyan('Create quick Alias')},
+                                {value: 'exportPastebin' , label: color.cyan('Export to Pastebin')},
                                 {value: 'cancel' , label: color.yellow('Cancel')},
                                 {value: 'delete' , label: color.red('# Delete #')},
                              ]
@@ -438,13 +440,71 @@ export async function listPeanuts(user, db) {
                 // Excute logic of selected action
                 switch (answer_action) {
 
-                    // Edit selected peanut text command
+                    // Create a shorthand alias to quickly run a command with pnut (a) on the command line with optional parameters
+                    case 'alias':
 
+                        try {
+                            
+                            console.log(color.green("\nAliases are shortcuts to quickly run stashed commands using pnut (a) from the terminal."));
+                            console.log(color.green("Aliases support passing optional parameters when the stashed command is a template."));
+                            console.log(`Example: Stash command template with a variable \${}: ${color.cyan("ls -al \${folderpath} | grep *.js")}`);
+                            console.log(`Save alias such as 't1', then run as follows from the terminal: ${color.cyan("pnut a t1 ~/project1/")} `);
+
+                            // get from users/${firebase_email}/private/peanut-alias/ to see if there already exist an alias for this command
+                            const snapshot = await get(ref(db, `users/${firebase_email}/private/peanut-alias/${peanutList[metaDataIndex].databaseRef.key}`));                 
+                            try {
+                                if (snapshot.exists()) {
+                                    console.log(color.cyan("Current alias: " + snapshot.val().name));                                  
+                                }
+                            }catch (error) {
+                                console.log(color.red("Error: ") + error);
+                                continue;
+                            }
+
+                            // Read new text
+                            var data = await read({prompt: `${color.cyan('\nChoose an shortchat alias name for the selected command or CTRL+C to cancel:\n')} `});
+                            
+                            if (data.length == 0){
+                                console.log(`${color.yellow("Error: Empty text")}`);
+                                continue;
+                            }
+                            if (data.length > MAX_PEANUT_TEXT_LENGTH) {
+                                console.log(`${color.red('Error:')} Command text is too long`);
+                                continue;
+                            }
+
+                            try {
+                                // Push the new command under /private/peanut-alias using the same key as the selected peanut command
+                                // this is done to optimize finding it. with this same key we can find it at that location if it exists
+                                // and there is no need to query or load a list of all aliases
+                                await set(ref(db, `users/${firebase_email}/private/peanut-alias/${peanutList[metaDataIndex].databaseRef.key}`), {
+                                    name: data,
+                                    timestamp: serverTimestamp(),
+                                    // a bit redundant since the key itself is the same, keep it for future use cases
+                                    parent: peanutList[metaDataIndex].databaseRef.key 
+                                })
+                            } catch (error) {
+                                console.log(color.red("Error saving alias: ") + error);
+                                continue;
+                            }
+
+                            console.log(`${color.green("\nSuccess: Alias for command updated")}`);
+                            continue;
+
+                        } catch (error) {
+                            if (error == "Error: canceled")
+                                console.log(`${color.yellow("Cancelled")}`);
+                            else console.log(`${color.yellow(error)}`);
+                            continue;
+                        }
+                        break;
+                    
+                    // Edit selected peanut text command
                     case 'edit':
 
                         try {
                             // Read new text
-                            var data = await read({prompt: `${color.cyan('\nWrite new commandtext or CTRL+C to cancel:\n')} `});
+                            var data = await read({prompt: `${color.cyan('\nWrite new command text or CTRL+C to cancel:\n')} `});
                             
                             if (data.length == 0){
                                 console.log(`${color.yellow("Error: Empty text")}`);
@@ -882,6 +942,7 @@ export async function popPeanut(user, db) {
     });
 }
 
+// AI Natural language assisted find and search in your stash of peanut texts
 async function aiFind(user, db, peanuts) {
 
     const userEmail = user.email;

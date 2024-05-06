@@ -1,4 +1,4 @@
-# Peanut Stash 🥜 1.0.15 
+# Peanut Stash 🥜 1.1.0 
 
 <div align="center" width="100%">
 
@@ -10,7 +10,7 @@
 
 <img width="125px" height="30px" src="https://img.shields.io/badge/LICENSE-MIT-3D1?style=for-the-badge">
 <img width="125px" height="30px" src="https://img.shields.io/badge/DISCORD-LIVE-69c?style=for-the-badge">
-<img width="125px" height="30px" src="https://img.shields.io/badge/NPM-1.0.15-6FA?style=for-the-badge">
+<img width="125px" height="30px" src="https://img.shields.io/badge/NPM-1.1.0-6FA?style=for-the-badge">
 
 </div>
 
@@ -68,6 +68,7 @@ pnut
     stash (s)                                Quickly stash terminal text peanuts 🥜 for reuse later
     pop (p)                                  Pop last stashed text peanut 🥜 back to terminal
     list (l)                                 Manage 🥜 stash (add/run/clipboard/print/label/ai/share)
+    alias (a)                                Shortcut name to stashed command to run (optional params)
     gemini (ai)                              Setup/Infer commands with Gemini v1 API (paid/free)
 
     users (u)                                Manage connected users to share with
@@ -96,6 +97,9 @@ pnut
     pnut p
 (get the last stashed text peanut)
 
+    pnut a lst ~/project1
+(stashed command alis title to run would be 'lst' and the command template would be 'ls -al ${folder}' )
+
 ### Features:
 
 * Cloud based collaborative copy pasting of terminal commands (peanuts! 🥜)
@@ -103,6 +107,7 @@ pnut
 * Ready out of the box to try out
 * Access your stash of terminal commands anywhere you login
 * Stash, pop, execute, categorise, clipboard copy, ask ai, edit, share commands quickly with colleagues
+* Run quick alias shortcuts from the terminal that map to full length commands/templates with optional variables 
 * Open links in browser from terminal console
 * Attach notes to stashed peanut texts to remind you what the commands do and add context
 * Manage cloud users to share text peanut with
@@ -115,13 +120,13 @@ pnut
 * Symmetrical encryption for login credentials based on machine signatures
 * Color codded interactive prompts
 * Firebase realtime db security rules for autherization and access control of data
-* Integration with Gemini V1 API (Free/paid keys required) to help create, find & explain command lines
+* Integration with Gemini V1 API (Free/paid keys required) to help create, find & explain command lines using natural language
 * Export single commands or entire collections to unlisted pastebin URLs (key required)
 
 ### Config & troubleshooting
 
-Peanut stash saves under ~/.peanuts its configuration files (login, ai key and custom server)
-In case of issues, such as using wrong custom server config, you can remove those files to reset it
+Peanut stash saves under ~/.peanuts its configuration files (login, ai key, pastebin and custom server)
+In case of issues, such as using wrong custom server config, you can remove those files to reset them.
 
 ### Important Notes:
 
@@ -142,7 +147,7 @@ Certain intentionally missing features like not using custom access tokens to lo
 In this spirit, the app design is that of a purely client logic/architecture on the main branch which can access the realtime firebase database directly from the node app securely without going through API server endpoints or any paid features. (and the pros and cons that comes with this approach). Firebase admin sdk cannot be used in such a project since we aren't using server modules and for security reasons we can't use the admin sdk in an unsecure public client environment.
 
 
-### Roadmap for versions 1.0.15+:
+### Roadmap for versions 1.1.0+:
 
 * Add unit testing
 * Refactor to use/add a provider class

@@ -74,6 +74,15 @@
               "$other": { ".validate": false }
             }
           },
+          "peanut-alias" : {
+            ".indexOn": "name",  // index on name for query performance
+            "$text":{
+              "timestamp": { ".validate": "newData.isNumber()"},
+              "name": { ".validate": "newData.isString() && newData.val().length <= 32"}, 
+              "parent": { ".validate": "newData.isString() && newData.val().length <= 20"}, // firebase key size
+              "$other": { ".validate": false }
+            }
+          },
           "categories": {
             "$category":{
               "name": { ".validate": "newData.isString() && newData.val().length <= 32"},

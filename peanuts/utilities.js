@@ -9,12 +9,17 @@ import path from 'path';
 import os from 'os';
 import {read} from 'read';
 import tty from 'tty';
+import { execSync } from 'child_process';
 
 import {  
   ref, 
   push, 
   get, 
   remove,
+  orderByChild,
+  equalTo,
+  query,
+  limitToFirst
 } from 'firebase/database';
 
 import { 
@@ -36,7 +41,7 @@ import {
 
 // Show console help arguments
 export function showArgs() {
-    console.log(`\n${color.cyan('Peanut Stash 🥜 1.0.15')} - Collaborative command line cloud Stash, Share, Copy & Paste tool.\n`);
+    console.log(`\n${color.cyan('Peanut Stash 🥜 1.1.0')} - Collaborative command line cloud Stash, Share, Copy & Paste tool.\n`);
     console.log("Quickly stash, pop, run, send & receive console commands and text with your coding, IT, devops teams.\n")
     console.log(`${color.yellow("Arguments Usage:\n")}`);
   
@@ -48,6 +53,7 @@ export function showArgs() {
     console.log(`stash (s)\t\t\t\t ${color.cyan('Quickly stash terminal text peanuts 🥜 for reuse later')}`);
     console.log(`pop (p) \t\t\t\t ${color.cyan('Pop last stashed text peanut 🥜 back to terminal')}`);
     console.log(`list (l) \t\t\t\t ${color.cyan('Manage 🥜 stash (add/run/clipboard/print/label/ai/share)')}`);
+    console.log(`alias (a) \t\t\t\t ${color.cyan('Shortcut name to stashed command to run (optional params)')}`);
     console.log(`gemini (ai) \t\t\t\t ${color.cyan('Setup/Infer commands with Gemini v1 API (paid/free)')}\n`);
 
     console.log(`users (u) \t\t\t\t ${color.cyan('Manage connected users to share with')}\n`);
@@ -96,6 +102,12 @@ export function stateMachine(db, auth, user, action, args) {
     // Check console parameters
     switch (action) {
 
+      // Run alias shortcut to a stashed command with optional parameters
+      case 'alias':
+      case 'a':
+        runPeanutAlias(user, db, args);
+        break;
+      
       // Configure Server chosen
       case 'askGemini':
       case 'ai':
@@ -157,7 +169,7 @@ export function stateMachine(db, auth, user, action, args) {
 
       case "about":
       case "a":
-        console.log(figlet.textSync("Peanut Stash 1.0.15 ", { horizontalLayout: "full" }));
+        console.log(figlet.textSync("Peanut Stash 1.1.0 ", { horizontalLayout: "full" }));
         console.log(`Quickly stash, pop, run, send & receive console commands and text with your team.\nHelpful tiny tool for coders, IT and devops who work frequently within the terminal.\n\nUnlike pastebin and its 3rd party tools/ecosystem, this tool and project is more focused on quick efficient terminal commands stashing/sharing and not on code sharing.\n${color.cyan("https://github.com/roymasad/peanut-stash")}`);
         process.exit(0);
         break;
@@ -673,7 +685,7 @@ export function getTerminalSize() {
   }
 }
 
-// export data to paste bin either single mode or category
+// Export data to paste bin either single mode or category
 export async function exportPasteBin(user, db, data, mode = "single") {
 
   // variables and constants
@@ -813,5 +825,100 @@ export async function exportPasteBin(user, db, data, mode = "single") {
     }
   }
 
+}
+
+// Run an alias to a stashed command with any optional passed parameters
+async function runPeanutAlias(user, db, args) {
+
+  const userEmail = user.email;
+  const firebase_email = userEmail.replace(/\./g, '_');
+
+  const parms = [];
+
+  // first check if an alias arguments was passed
+  if (args.length >= 2) {
+
+    // loop and add to array the optional arguments after the alias 
+    for (var i = 2; i < args.length; i++) {
+      parms.push(args[i]);
+    }
+
+    // get/find the alias with this name value in the list, limit to first 1 if there are duplicate alias names
+    const aliasRef = ref(db, `users/${firebase_email}/private/peanut-alias/`);
+    // use query since we are filtering, make sure index on name exists
+    const aliasQuery = query(aliasRef, orderByChild("name"), equalTo(args[1]), limitToFirst(1));
+    
+    // both alias and peanut stash share save key id (in different location) top optimize retrieval
+    // get the id of the alias, then use it to retrive the action stashed command
+    // this approach takes 2 steps, but allows us to link the alias to a command that can be edited
+    // if we baked/denormalized the command into the alias, we would need to update it also on edit of command
+    // read speed vs centralization of code update, i am choosing here the later option.
+    try {
+      const snapshot = await get(aliasQuery);
+      if (snapshot.exists()) {
+
+        const data = snapshot.val();  // Retrieves the entire result object
+        const aliasKey = Object.keys(data)[0];  // Then get the first key (should only be one)
+
+        // now that we have the alias key, the peanut stash has the same key id, so retrieve the stashed data
+        const peanutRef = ref(db, `users/${firebase_email}/private/peanut-stash/${aliasKey}`);
+
+        const snapshot2 = await get(peanutRef);
+
+        let decryptedPeanut = "";
+
+        if (snapshot2.exists()) {
+          decryptedPeanut = decryptStringWithPrivateKey(user.privateKey, snapshot2.val().data);
+        }
+
+        // now parse the decrypted command in case it was a template with variablesand there were passed parameters
+        const parsedCommand = parseAliasCommand(decryptedPeanut, parms);
+
+        // execute the parsed command using await syntac
+
+        console.log(color.green(`Success: Command execute\n ${parsedCommand}`));
+        const output = await execSync(parsedCommand);
+        console.log(output.toString()); // the command's output
+
+        process.exit(0);
+      } else {
+        console.log(color.red("Error: Alias not found"));
+        process.exit(0);
+      }
+    } catch (error) {
+      console.log(color.red(error));
+      process.exit(0);
+    }
+
+  } else {
+    console.log(color.red("\nError: No Alias parameter passed"));
+  }
+
+  process.exit(0)
+}
+
+// Function to parse any alias template commands with or without built in variables and returns parsed string
+// it takes as input args the app cli arguments and the command to parse itself
+// argIndex specifies where to start or how many arguments are skipped from the arg array 
+// this new parsed string can then be executed by the calling function
+export function parseAliasCommand(passedCommand, args, argIndex = 0) {
+  // Regular expression to find all occurrences of `${variableName}`
+  const variableRegex = /\$\{([^}]+)\}/g;
+
+  // Starting index (0 would be 'action' and after that are the rest of the arguments)
+  //let argIndex = 1;
+
+  // Replace each variable with the corresponding argument from args
+  let parsedCommand = passedCommand.replace(variableRegex, (match) => {
+    if (argIndex < args.length) {
+      // Replace with argument and increment the index
+      return args[argIndex++];
+    } else {
+      // No more arguments left, return the original match
+      return match;
+    }
+  });
+
+  return parsedCommand;
 }
   
