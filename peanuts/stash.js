@@ -268,7 +268,7 @@ export async function listPeanuts(user, db) {
                         email: peanut.val().userEmail,
                         userId: peanut.val().uid,
                         category: peanut.val().category,
-                        note: peanut.val().note,
+                        note: (peanut.val().note == null) ? '' :peanut.val().note,
                         databaseRef: peanut.ref
                         });
                 }
